@@ -49,10 +49,17 @@ void *worker__thread() {
     socklen_t addrlen;
     struct handler_conn *conn;
     pthread_t thread;
+    pthread_attr_t attr;
 
     addrlen = sizeof(addr);
 
     sock = server_init(PORT_NUMBER, MAX_CONN);
+
+    if (pthread_attr_init(&attr) != 0)
+        log_errno("Could not create thread attribute");
+
+    if (pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED) != 0)
+        log_errno("Could set detach state");
 
     while(1) {
         if ((fd = accept(sock, (struct sockaddr *)&addr, &addrlen)) < 0)
@@ -66,9 +73,11 @@ void *worker__thread() {
         conn->fd = fd;
         conn->addr = addr;
 
-        if (pthread_create(&thread, NULL, &handler__thread, conn) != 0)
+        if (pthread_create(&thread, &attr, &handler__thread, conn) != 0)
             log_errno("Could not start handler");
     }
+
+    pthread_attr_destroy(&attr);
 
     close(sock);
 
