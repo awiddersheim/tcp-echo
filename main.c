@@ -77,12 +77,9 @@ void *worker__thread() {
 
 int main(void) {
     unsigned int i;
-    pthread_t *workers;
+    pthread_t workers[WORKER_COUNT];
 
     log_info("Starting (%d) workers", WORKER_COUNT);
-
-    if ((workers = malloc(WORKER_COUNT * sizeof(pthread_t))) == NULL)
-        log_errno("Could not allocate memory for worker storage");
 
     for (i = 0; i < WORKER_COUNT; ++i) {
         if (pthread_create(&workers[i], NULL, &worker__thread, NULL) != 0)
@@ -94,6 +91,4 @@ int main(void) {
     for (i = 0; i < WORKER_COUNT; ++i) {
         pthread_join(workers[i], NULL);
     }
-
-    free(workers);
 }
