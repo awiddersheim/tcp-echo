@@ -1,6 +1,7 @@
 #include "main.h"
 
-int create_sock() {
+int create_sock()
+{
     int sock;
 
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
@@ -9,17 +10,20 @@ int create_sock() {
     return sock;
 }
 
-void sock_setreuse(int sock, int reuse) {
+void sock_setreuse(int sock, int reuse)
+{
     if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) == -1)
         log_errno("Could not set address reuse");
 }
 
-void sock_setreuse_port(int sock, int reuse) {
+void sock_setreuse_port(int sock, int reuse)
+{
     if (setsockopt(sock, SOL_SOCKET, SO_REUSEPORT, &reuse, sizeof(reuse)) == -1)
         log_errno("Could not set port reuse");
 }
 
-void sock_bind(int sock, int port) {
+void sock_bind(int sock, int port)
+{
     struct sockaddr_in addr;
 
     memset(&addr, 0x0, sizeof(struct sockaddr_in));
@@ -32,12 +36,14 @@ void sock_bind(int sock, int port) {
         log_errno("Could not bind to port (%d)", port);
 }
 
-void sock_listen(int sock, int maxconn, int port) {
+void sock_listen(int sock, int maxconn, int port)
+{
     if (listen(sock, maxconn) < 0)
         log_errno("Could not listen on port (%d)", port);
 }
 
-int server_init(int port, int maxconn) {
+int server_init(int port, int maxconn)
+{
     int sock;
 
     sock = create_sock();

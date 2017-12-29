@@ -5,7 +5,8 @@
 #define PORT_NUMBER 8090
 #define MAX_CONN 5
 
-void *handler__thread(void *_in) {
+void *handler__thread(void *_in)
+{
     struct handler_conn *conn = _in;
     char buffer[200];
     int data;
@@ -42,7 +43,8 @@ void *handler__thread(void *_in) {
     return NULL;
 }
 
-void *worker__thread() {
+void *worker__thread()
+{
     int sock;
     int fd;
     struct sockaddr_in addr;
@@ -84,7 +86,8 @@ void *worker__thread() {
     return NULL;
 }
 
-int main(void) {
+int main(void)
+{
     unsigned int i;
     pthread_t workers[WORKER_COUNT];
 
