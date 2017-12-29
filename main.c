@@ -103,4 +103,6 @@ int main(void)
     for (i = 0; i < WORKER_COUNT; ++i) {
         pthread_join(workers[i], NULL);
     }
+
+    return 0;
 }
