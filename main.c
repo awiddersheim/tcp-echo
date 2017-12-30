@@ -1,9 +1,5 @@
 #include "main.h"
 
-#define WORKERS 4
-#define HANDLERS 10
-#define PORT_NUMBER 8090
-#define MAX_CONN 5
 #define KEY_SIZE 256
 
 void handler__cleanup(void *_in) {
