@@ -1,3 +1,6 @@
+#include <stdlib.h>
+#include "log.h"
+
 int create_sock();
 char *key_init(int worker_id);
 void set_setreuse(int sock, int reuse);
@@ -7,4 +10,13 @@ void sock_listen(int sock, int port, int maxconn);
 int server_init(int port, int maxconn);
 sem_t *semaphore_init(char *key);
 pthread_attr_t *thread_init();
-void *xmalloc(size_t size);
+
+static inline void *xmalloc(size_t size)
+{
+    void *ptr = malloc(size);
+
+    if (ptr == NULL)
+        log_errno("Could not allocate memory");
+
+    return ptr;
+}

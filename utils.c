@@ -1,15 +1,5 @@
 #include "main.h"
 
-void *xmalloc(size_t size)
-{
-	void *ptr = malloc(size);
-
-	if (ptr == NULL)
-        log_errno("Could not allocate memory");
-
-	return ptr;
-}
-
 int create_sock()
 {
     int sock;
