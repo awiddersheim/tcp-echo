@@ -23,12 +23,14 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU|.*Clang")
   endforeach()
 endif()
 
-add_library(error error.c)
-add_library(log log.c)
-add_library(utils utils.c)
 find_package(Threads)
-add_executable(server main.c)
-target_link_libraries(server PRIVATE error)
-target_link_libraries(server PRIVATE log)
-target_link_libraries(server PRIVATE utils)
+
+add_executable(
+    server
+    main.c
+    log.c
+    utils.c
+    error.c
+)
+
 target_link_libraries(server PRIVATE ${CMAKE_THREAD_LIBS_INIT})
