@@ -1,5 +1,15 @@
 #include "main.h"
 
+void *xmalloc(size_t size)
+{
+	void *ptr = malloc(size);
+
+	if (ptr == NULL)
+        log_errno("Could not allocate memory");
+
+	return ptr;
+}
+
 int create_sock()
 {
     int sock;
@@ -19,8 +29,7 @@ char *key_init(int worker_id)
 
     size = snprintf(NULL, 0, format, worker_id) + 1;
 
-    if ((key = malloc(size)) == NULL)
-        log_errno("Could allocate memory for key storage");
+    key = xmalloc(size);
 
     result = snprintf(key, size, format, worker_id);
 
@@ -103,8 +112,7 @@ pthread_attr_t *thread_init()
 {
     pthread_attr_t *attr = NULL;
 
-    if ((attr = malloc(sizeof(pthread_attr_t))) == NULL)
-        log_errno("Could allocate memory for thread attributes");
+    attr = xmalloc(sizeof(pthread_attr_t));
 
     if (pthread_attr_init(attr) != 0)
         log_errno("Could not create thread attribute");

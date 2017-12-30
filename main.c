@@ -118,8 +118,7 @@ void *worker__thread(void *_in)
             worker_id
         );
 
-        if ((conn = malloc(sizeof(struct handler_conn))) == NULL)
-            log_errno("Could not allocate memory for connection storage in (%d)", worker_id);
+        conn = xmalloc(sizeof(struct handler_conn));
 
         conn->fd = fd;
         conn->addr = addr;
