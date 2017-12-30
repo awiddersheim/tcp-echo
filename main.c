@@ -1,7 +1,5 @@
 #include "main.h"
 
-#define KEY_SIZE 256
-
 void handler__cleanup(void *_in) {
     struct handler_conn *conn = _in;
 
@@ -76,10 +74,9 @@ void *worker__thread(void *_in)
     socklen_t addrlen;
     struct handler_conn *conn;
     pthread_t thread;
-    pthread_attr_t attr;
+    pthread_attr_t *attr;
     sem_t *mutex;
-    char key[KEY_SIZE];
-    int result;
+    char *key;
     #ifndef __APPLE__
     int handlers;
     #endif
@@ -90,33 +87,11 @@ void *worker__thread(void *_in)
 
     sock = server_init(PORT_NUMBER, MAX_CONN);
 
-    result = snprintf(key, KEY_SIZE, "/worker-%d", worker_id);
+    key = key_init(worker_id);
 
-    if (result < 0)
-        log_errno("Could not create semaphore key due to error in (%d)", worker_id);
-    else if (result >= KEY_SIZE)
-        log_fatal("Could not create semaphore key due to size in (%d)", worker_id);
+    mutex = semaphore_init(key);
 
-    /* NOTE(awiddersheim): Cleanup any previous semaphores with the same
-     * name.
-     */
-    if (sem_unlink(key) == -1) {
-        /* NOTE(awiddersheim): Unlinking a semaphore which might not have been
-         * opened on OSX seems to return EINVAL. Haven't been able to find any
-         * documentation to support this though.
-         */
-        if (errno != ENOENT && errno != EINVAL)
-            log_errno("Could not sem_unlink() key (%s) in (%d)", key, worker_id);
-    }
-
-    if ((mutex = sem_open(key, O_CREAT, 0644, HANDLERS - 1)) == SEM_FAILED)
-        log_errno("Could not create semaphore key (%s) in (%d)", key, worker_id);
-
-    if (pthread_attr_init(&attr) != 0)
-        log_errno("Could not create thread attribute in (%d)", worker_id);
-
-    if (pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED) != 0)
-        log_errno("Could set detached state in (%d)", worker_id);
+    attr = thread_init();
 
     while(1) {
         if ((fd = accept(sock, (struct sockaddr *)&addr, &addrlen)) < 0)
@@ -153,13 +128,17 @@ void *worker__thread(void *_in)
 
         sem_wait(mutex);
 
-        if (pthread_create(&thread, &attr, &handler__thread, conn) != 0)
+        if (pthread_create(&thread, attr, &handler__thread, conn) != 0)
             log_errno("Could not start handler thread in (%d)", worker_id);
     }
 
-    pthread_attr_destroy(&attr);
     close(sock);
+
+    pthread_attr_destroy(attr);
+    free(attr);
+
     sem_unlink(key);
+    free(key);
 
     return NULL;
 }

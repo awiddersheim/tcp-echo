@@ -10,6 +10,26 @@ int create_sock()
     return sock;
 }
 
+char *key_init(int worker_id)
+{
+    char *key = NULL;
+    int result;
+    int size;
+    const char *format = "/worker-%d";
+
+    size = snprintf(NULL, 0, format, worker_id) + 1;
+
+    if ((key = malloc(size)) == NULL)
+        log_errno("Could allocate memory for key storage");
+
+    result = snprintf(key, size, format, worker_id);
+
+    if (result < 0)
+        log_fatal("Could not create semaphore key (%d)", result);
+
+    return key;
+}
+
 void sock_setreuse(int sock, int reuse)
 {
     if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) == -1)
@@ -55,4 +75,42 @@ int server_init(int port, int maxconn)
     sock_listen(sock, maxconn, port);
 
     return sock;
+}
+
+sem_t *semaphore_init(char *key)
+{
+    sem_t *mutex;
+
+    /* NOTE(awiddersheim): Cleanup any previous semaphores with the same
+     * name.
+     */
+    if (sem_unlink(key) == -1) {
+        /* NOTE(awiddersheim): Unlinking a semaphore which might not have been
+         * opened on OSX seems to return EINVAL. Haven't been able to find any
+         * documentation to support this though.
+         */
+        if (errno != ENOENT && errno != EINVAL)
+            log_errno("Could not sem_unlink() key (%s)", key);
+    }
+
+    if ((mutex = sem_open(key, O_CREAT, 0644, HANDLERS - 1)) == SEM_FAILED)
+        log_errno("Could not create semaphore key (%s)", key);
+
+    return mutex;
+}
+
+pthread_attr_t *thread_init()
+{
+    pthread_attr_t *attr = NULL;
+
+    if ((attr = malloc(sizeof(pthread_attr_t))) == NULL)
+        log_errno("Could allocate memory for thread attributes");
+
+    if (pthread_attr_init(attr) != 0)
+        log_errno("Could not create thread attribute");
+
+    if (pthread_attr_setdetachstate(attr, PTHREAD_CREATE_DETACHED) != 0)
+        log_errno("Could set detached state");
+
+    return attr;
 }
