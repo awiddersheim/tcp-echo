@@ -13,18 +13,8 @@ int create_sock()
 char *key_init(int worker_id)
 {
     char *key = NULL;
-    int result;
-    int size;
-    const char *format = "/worker-%d";
 
-    size = snprintf(NULL, 0, format, worker_id) + 1;
-
-    key = xmalloc(size);
-
-    result = snprintf(key, size, format, worker_id);
-
-    if (result < 0)
-        log_fatal("Could not create semaphore key (%d)", result);
+    xasprintf(&key, "/worker-%d", worker_id);
 
     return key;
 }
