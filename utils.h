@@ -25,32 +25,32 @@ static inline void *xmalloc(size_t size)
 static inline int xvasprintf(char **strp, const char *format, va_list args)
 {
     int result;
-	va_list args_tmp;
+    va_list args_tmp;
 
-	/* Calculate length needed for string */
-	va_copy(args_tmp, args);
-	result = (vsnprintf(NULL, 0, format, args_tmp) + 1);
-	va_end(args_tmp);
+    /* Calculate length needed for string */
+    va_copy(args_tmp, args);
+    result = (vsnprintf(NULL, 0, format, args_tmp) + 1);
+    va_end(args_tmp);
 
-	/* Allocate and fill string */
-	*strp = xmalloc(result);
+    /* Allocate and fill string */
+    *strp = xmalloc(result);
 
-	result = vsnprintf(*strp, result, format, args);
+    result = vsnprintf(*strp, result, format, args);
 
     if (result < 0)
         log_fatal("Could not create string (%d)", result);
 
-	return result;
+    return result;
 }
 
 static inline int xasprintf(char **strp, const char *format, ...)
 {
-	int result;
-	va_list args;
+    int result;
+    va_list args;
 
-	va_start(args, format);
-	result = xvasprintf(strp, format, args);
-	va_end(args);
+    va_start(args, format);
+    result = xvasprintf(strp, format, args);
+    va_end(args);
 
-	return result;
+    return result;
 }
