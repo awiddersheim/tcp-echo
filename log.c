@@ -1,12 +1,17 @@
 #include "main.h"
 
-void log_write(const char *message, ...)
+void log_write(log_level log_level, const char *message, ...)
 {
-    va_list vl;
-    va_start(vl, message);
+    va_list args;
 
-    vfprintf(stdout, message, vl);
+    if (log_level < LOG_LEVEL)
+        return;
+
+    va_start(args, message);
+    vfprintf(stdout, message, args);
     fflush(stdout);
+    va_end(args);
 
-    va_end(vl);
+    if (log_level == FATAL)
+        exit(1);
 }

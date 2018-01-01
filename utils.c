@@ -5,7 +5,7 @@ int create_sock()
     int sock;
 
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-        log_fatal("Could not create socket");
+        logg(FATAL, "Could not create socket");
 
     return sock;
 }
@@ -22,13 +22,13 @@ char *key_init(int worker_id)
 void sock_setreuse(int sock, int reuse)
 {
     if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) == -1)
-        log_errno("Could not set address reuse");
+        log_errno(FATAL, "Could not set address reuse");
 }
 
 void sock_setreuse_port(int sock, int reuse)
 {
     if (setsockopt(sock, SOL_SOCKET, SO_REUSEPORT, &reuse, sizeof(reuse)) == -1)
-        log_errno("Could not set port reuse");
+        log_errno(FATAL, "Could not set port reuse");
 }
 
 void sock_bind(int sock, int port)
@@ -42,13 +42,13 @@ void sock_bind(int sock, int port)
     addr.sin_port = htons(port);
 
     if (bind(sock, (struct sockaddr *)&addr, sizeof(addr)) < 0)
-        log_errno("Could not bind to port (%d)", port);
+        log_errno(FATAL, "Could not bind to port (%d)", port);
 }
 
 void sock_listen(int sock, int maxconn, int port)
 {
     if (listen(sock, maxconn) < 0)
-        log_errno("Could not listen on port (%d)", port);
+        log_errno(FATAL, "Could not listen on port (%d)", port);
 }
 
 int server_init(int port, int maxconn)
@@ -79,11 +79,11 @@ sem_t *semaphore_init(char *key)
          * documentation to support this though.
          */
         if (errno != ENOENT && errno != EINVAL)
-            log_errno("Could not sem_unlink() key (%s)", key);
+            log_errno(FATAL, "Could not sem_unlink() key (%s)", key);
     }
 
     if ((mutex = sem_open(key, O_CREAT, 0644, HANDLERS - 1)) == SEM_FAILED)
-        log_errno("Could not create semaphore key (%s)", key);
+        log_errno(FATAL, "Could not create semaphore key (%s)", key);
 
     return mutex;
 }
@@ -95,10 +95,10 @@ pthread_attr_t *thread_init()
     attr = xmalloc(sizeof(pthread_attr_t));
 
     if (pthread_attr_init(attr) != 0)
-        log_errno("Could not create thread attribute");
+        log_errno(FATAL, "Could not create thread attribute");
 
     if (pthread_attr_setdetachstate(attr, PTHREAD_CREATE_DETACHED) != 0)
-        log_errno("Could set detached state");
+        log_errno(FATAL, "Could set detached state");
 
     return attr;
 }

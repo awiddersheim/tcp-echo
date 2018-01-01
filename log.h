@@ -1,18 +1,31 @@
 #include <errno.h>
 #include "error.h"
 
-void log_write(const char *message, ...) __attribute__((format (printf, 1, 2)));
+typedef enum {
+    DEBUG = 1,
+    INFO  = 2,
+    WARN  = 3,
+    ERROR = 4,
+    FATAL = 5,
+} log_level;
 
-#define log_info(M, ...) log_write("[INFO]: " M "\n", ##__VA_ARGS__);
-#define log_error(M, ...) log_write("[ERROR]: " M "\n", ##__VA_ARGS__);
-#define log_fatal(M, ...) do {\
-    log_write("[FATAL]: " M "\n", ##__VA_ARGS__); \
-    exit(1); \
+static const char *level_names[] = {
+    "DEBUG",
+    "INFO",
+    "WARN",
+    "ERROR",
+    "FATAL"
+};
+
+void log_write(log_level log_level, const char *message, ...);
+
+#define logg(L, M, ...) do {\
+    log_write(L, "%s: " M "\n", level_names[L - 1], ##__VA_ARGS__); \
 } while(0)
-#define log_errno(M, ...) do {\
+
+#define log_errno(L, M, ...) do {\
     char buffer[1024]; \
     int previous_errno = errno; \
     strerror_x(errno, buffer, sizeof(buffer)); \
-    log_fatal(M " errno (%d) msg (%s)", ##__VA_ARGS__, previous_errno, buffer); \
-    exit(1); \
+    logg(L, M " errno (%d) msg (%s)", ##__VA_ARGS__, previous_errno, buffer); \
 } while(0)

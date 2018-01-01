@@ -3,7 +3,8 @@
 void handler__cleanup(void *_in) {
     struct handler_conn *conn = _in;
 
-    log_info(
+    logg(
+        INFO,
         "Closing connection to %s:%d in (%d)",
         inet_ntoa(conn->addr.sin_addr),
         ntohs(conn->addr.sin_port),
@@ -35,6 +36,7 @@ void *handler__thread(void *_in)
                 continue;
 
             log_errno(
+                FATAL,
                 "Could not recv() from %s:%d in (%d)",
                 inet_ntoa(conn->addr.sin_addr),
                 ntohs(conn->addr.sin_port),
@@ -48,6 +50,7 @@ void *handler__thread(void *_in)
                     continue;
 
                 log_errno(
+                    FATAL,
                     "Could not send() to %s:%d in (%d)",
                     inet_ntoa(conn->addr.sin_addr),
                     ntohs(conn->addr.sin_port),
@@ -81,7 +84,7 @@ void *worker__thread(void *_in)
     int handlers;
     #endif
 
-    log_info("Started worker (%d)", worker_id);
+    logg(INFO, "Started worker (%d)", worker_id);
 
     addrlen = sizeof(addr);
 
@@ -96,6 +99,7 @@ void *worker__thread(void *_in)
     while(1) {
         if ((fd = accept(sock, (struct sockaddr *)&addr, &addrlen)) < 0)
             log_errno(
+                FATAL,
                 "Could not accept() connection from %s:%d in (%d)",
                 inet_ntoa(addr.sin_addr),
                 ntohs(addr.sin_port),
@@ -106,7 +110,8 @@ void *worker__thread(void *_in)
         sem_getvalue(mutex, &handlers);
         #endif
 
-        log_info(
+        logg(
+            INFO,
             #ifdef __APPLE__
             "Handling connection from %s:%d in (%d)",
             #else
@@ -128,7 +133,7 @@ void *worker__thread(void *_in)
         sem_wait(mutex);
 
         if (pthread_create(&thread, attr, &handler__thread, conn) != 0)
-            log_errno("Could not start handler thread in (%d)", worker_id);
+            log_errno(FATAL, "Could not start handler thread in (%d)", worker_id);
     }
 
     close(sock);
@@ -148,15 +153,15 @@ int main(void)
     unsigned int worker_id[WORKERS];
     pthread_t workers[WORKERS];
 
-    log_info("Starting (%d) workers", WORKERS);
+    logg(INFO, "Starting (%d) workers", WORKERS);
 
     for (i = 0; i < WORKERS; ++i) {
         worker_id[i] = i + 1;
         if (pthread_create(&workers[i], NULL, &worker__thread, &worker_id[i]) != 0)
-            log_errno("Failed starting worker (%d)", i + 1);
+            log_errno(FATAL, "Failed starting worker (%d)", i + 1);
     }
 
-    log_info("Listening on 0.0.0.0:%d", PORT_NUMBER);
+    logg(INFO, "Listening on 0.0.0.0:%d", PORT_NUMBER);
 
     for (i = 0; i < WORKERS; ++i) {
         pthread_join(workers[i], NULL);

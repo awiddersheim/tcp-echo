@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "log.h"
 
 int create_sock();
 char *key_init(int worker_id);
@@ -17,7 +16,7 @@ static inline void *xmalloc(size_t size)
     void *ptr = malloc(size);
 
     if (ptr == NULL)
-        log_errno("Could not allocate memory");
+        log_errno(FATAL, "Could not allocate memory");
 
     return ptr;
 }
@@ -38,7 +37,7 @@ static inline int xvasprintf(char **strp, const char *format, va_list args)
     result = vsnprintf(*strp, result, format, args);
 
     if (result < 0)
-        log_fatal("Could not create string (%d)", result);
+        logg(FATAL, "Could not create string (%d)", result);
 
     return result;
 }
