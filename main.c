@@ -147,11 +147,14 @@ void *worker__thread(void *_in)
     return NULL;
 }
 
-int main(void)
+int main(int argc, char *argv[])
 {
     unsigned int i;
     unsigned int worker_id[WORKERS];
     pthread_t workers[WORKERS];
+
+    initproctitle(argc, argv);
+    setproctitle("tcp-echo", "master");
 
     logg(INFO, "Starting (%d) workers", WORKERS);
 

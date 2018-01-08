@@ -11,6 +11,9 @@ int server_init(int port, int maxconn);
 sem_t *semaphore_init(char *key);
 pthread_attr_t *thread_init();
 
+void initproctitle (int argc, char **argv);
+void setproctitle (const char *prog, const char *txt);
+
 static inline void *xmalloc(size_t size)
 {
     void *ptr = malloc(size);

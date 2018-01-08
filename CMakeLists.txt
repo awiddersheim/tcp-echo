@@ -28,9 +28,10 @@ find_package(Threads)
 add_executable(
     tcp-echo
     main.c
-    log.c
-    utils.c
     error.c
+    log.c
+    setproctitle.c
+    utils.c
 )
 
 target_link_libraries(tcp-echo PRIVATE ${CMAKE_THREAD_LIBS_INIT})
