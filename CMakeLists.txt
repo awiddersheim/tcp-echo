@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 include(CheckCCompilerFlag)
 include(CheckCSourceCompiles)
 
-project(server)
+project(tcp-echo)
 
 CHECK_C_SOURCE_COMPILES("
   #include <string.h>
@@ -26,11 +26,11 @@ endif()
 find_package(Threads)
 
 add_executable(
-    server
+    tcp-echo
     main.c
     log.c
     utils.c
     error.c
 )
 
-target_link_libraries(server PRIVATE ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(tcp-echo PRIVATE ${CMAKE_THREAD_LIBS_INIT})
