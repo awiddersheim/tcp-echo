@@ -8,8 +8,6 @@
 #include <string.h>
 #include <stdarg.h>
 
-#include "setproctitle.h"
-
 #ifndef SPT_BUFSIZE
 # define SPT_BUFSIZE     2048
 #endif
