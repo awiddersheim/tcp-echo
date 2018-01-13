@@ -1,5 +1,8 @@
 #include "main.h"
 
+/* Used for identifying processes in logs */
+char *title;
+
 void log_write(log_level log_level, const char *message, ...)
 {
     va_list args;

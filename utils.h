@@ -1,5 +1,7 @@
-#include <stdio.h>
-#include <stdlib.h>
+#ifndef __UTILS_H_
+#define __UTILS_H_
+
+#include "main.h"
 
 int create_sock();
 char *key_init(int worker_id);
@@ -10,6 +12,8 @@ void sock_listen(int sock, int port, int maxconn);
 int server_init(int port, int maxconn);
 sem_t *semaphore_init(char *key);
 pthread_attr_t *thread_init();
+int init_worker(struct worker *worker, int id);
+int update_worker_pid(struct worker *worker, int pid);
 
 void initproctitle (int argc, char **argv);
 void setproctitle (const char *prog, const char *txt);
@@ -56,3 +60,5 @@ static inline int xasprintf(char **strp, const char *format, ...)
 
     return result;
 }
+
+#endif

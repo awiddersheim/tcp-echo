@@ -102,3 +102,30 @@ pthread_attr_t *thread_init()
 
     return attr;
 }
+
+int init_worker(struct worker *worker, int id)
+{
+    int result;
+
+    worker->id = id;
+    worker->status = -1;
+    worker->pid = -1;
+
+    result = snprintf(worker->title, sizeof(worker->title), "worker-%d", id);
+
+    if (result < 0) {
+        log_errno(ERROR, "Could not write worker title for (worker-%d)", id);
+        return -1;
+    } else if ((unsigned long)result >= sizeof(worker->title)) {
+        logg(WARN, "Could not write entire worker title for (worker-%d)", id);
+    }
+
+    return 0;
+}
+
+int update_worker_pid(struct worker *worker, int pid)
+{
+    worker->pid = pid;
+
+    return 0;
+}

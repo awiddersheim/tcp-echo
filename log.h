@@ -1,5 +1,7 @@
-#include <errno.h>
-#include "error.h"
+#ifndef __LOG_H_
+#define __LOG_H_
+
+#include "main.h"
 
 typedef enum {
     DEBUG = 1,
@@ -17,10 +19,12 @@ static const char *level_names[] = {
     "FATAL"
 };
 
+extern char *title;
+
 void log_write(log_level log_level, const char *message, ...);
 
 #define logg(L, M, ...) do {\
-    log_write(L, "%s: " M "\n", level_names[L - 1], ##__VA_ARGS__); \
+    log_write(L, "%s (%s)(%d): " M "\n", level_names[L - 1], title, getpid(), ##__VA_ARGS__); \
 } while(0)
 
 #define log_errno(L, M, ...) do {\
@@ -29,3 +33,5 @@ void log_write(log_level log_level, const char *message, ...);
     strerror_x(errno, buffer, sizeof(buffer)); \
     logg(L, M " errno (%d) msg (%s)", ##__VA_ARGS__, previous_errno, buffer); \
 } while(0)
+
+#endif
