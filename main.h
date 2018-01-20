@@ -8,12 +8,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <sys/wait.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <pthread.h>
 #include <semaphore.h>
 #include <signal.h>
-#include <wait.h>
 #include <unistd.h>
 #include "config.h"
 #include "error.h"
