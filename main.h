@@ -19,10 +19,15 @@
 #include "error.h"
 #include "log.h"
 
+#ifdef PRCTL_NAMES
+#include <sys/prctl.h>
+#endif
+
 struct handler_conn {
     int fd;
     struct sockaddr_in addr;
     sem_t *mutex;
+    unsigned int id;
 };
 
 struct worker {

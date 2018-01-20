@@ -23,11 +23,13 @@ extern char *title;
 
 void log_write(log_level log_level, const char *message, ...);
 
-#define logg(L, M, ...) do {\
-    log_write(L, "%s (%s)(%d): " M "\n", level_names[L - 1], title, getpid(), ##__VA_ARGS__); \
+#define logg(L, M, ...) do { \
+    char thread_name[16]; \
+    get_thread_name(thread_name, sizeof(thread_name)); \
+    log_write(L, "%s (%s)(%s)(%d): " M "\n", level_names[L - 1], title, thread_name, getpid(), ##__VA_ARGS__); \
 } while(0)
 
-#define log_errno(L, M, ...) do {\
+#define log_errno(L, M, ...) do  {\
     char buffer[1024]; \
     int previous_errno = errno; \
     strerror_x(errno, buffer, sizeof(buffer)); \
