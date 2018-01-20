@@ -92,12 +92,12 @@ void worker__process(struct worker worker)
     int handlers;
     #endif
     struct timeval tv;
-	fd_set fds;
+    fd_set fds;
 
     sig_recv = 0;
-	signal(SIGQUIT, signal_recv);
-	signal(SIGTERM, signal_recv);
-	signal(SIGINT, SIG_IGN);
+    signal(SIGQUIT, signal_recv);
+    signal(SIGTERM, signal_recv);
+    signal(SIGINT, SIG_IGN);
 
     setproctitle("tcp-echo", "worker");
     title = worker.title;
@@ -210,9 +210,9 @@ int main(int argc, char *argv[])
     title = master_title;
 
     sig_recv = 0;
-	signal(SIGQUIT, signal_recv);
-	signal(SIGTERM, signal_recv);
-	signal(SIGINT, signal_recv);
+    signal(SIGQUIT, signal_recv);
+    signal(SIGTERM, signal_recv);
+    signal(SIGINT, signal_recv);
 
     logg(INFO, "Starting (%d) workers", WORKERS);
 
