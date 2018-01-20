@@ -23,7 +23,7 @@
 #include <sys/prctl.h>
 #endif
 
-struct handler_conn {
+struct conn {
     int fd;
     struct sockaddr_in addr;
     sem_t *mutex;

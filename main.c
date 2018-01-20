@@ -8,7 +8,7 @@ void signal_recv(int signal)
 }
 
 void handler__cleanup(void *_in) {
-    struct handler_conn *conn = _in;
+    struct conn *conn = _in;
 
     logg(
         INFO,
@@ -24,7 +24,7 @@ void handler__cleanup(void *_in) {
 
 void *handler__thread(void *_in)
 {
-    struct handler_conn *conn = _in;
+    struct conn *conn = _in;
     char buffer[200];
     int data;
     int result;
@@ -88,7 +88,7 @@ void worker__process(struct worker worker)
     int fd;
     struct sockaddr_in addr;
     socklen_t addrlen;
-    struct handler_conn *conn;
+    struct conn *conn;
     pthread_t thread;
     pthread_attr_t *attr;
     sem_t *mutex;
@@ -179,7 +179,7 @@ void worker__process(struct worker worker)
                 ntohs(addr.sin_port)
             );
 
-            conn = xmalloc(sizeof(struct handler_conn));
+            conn = xmalloc(sizeof(struct conn));
 
             conn->fd = fd;
             conn->addr = addr;
