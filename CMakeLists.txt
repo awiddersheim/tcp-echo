@@ -33,7 +33,7 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU|.*Clang")
   endforeach()
 endif()
 
-find_package(Threads)
+find_package(Threads REQUIRED)
 
 add_executable(
     tcp-echo
