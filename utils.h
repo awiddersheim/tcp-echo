@@ -21,12 +21,14 @@ void setproctitle (const char *prog, const char *txt);
 void set_thread_name(const char *name, ...);
 void get_thread_name(char *name, size_t size);
 
-static inline void *xmalloc(size_t size)
+#define xmalloc(x) _xmalloc(x, __FILE__, __LINE__)
+
+static inline void *_xmalloc(size_t size, const char *file, int line)
 {
     void *ptr = malloc(size);
 
     if (ptr == NULL)
-        log_errno(FATAL, "Could not allocate memory");
+        log_errno(FATAL, "Could not allocate memory in (%s) on line (%d)", file, line);
 
     return ptr;
 }
