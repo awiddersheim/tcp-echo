@@ -1,5 +1,7 @@
-/* Number of workers */
-#define WORKERS 4
+/* Number of workers to use. If left defined as <= 0, the amount of
+ * CPUs on the system are used by default.
+ */
+#define WORKERS 0
 
 /* Number of connection handlers per worker */
 #define HANDLERS 10
@@ -11,11 +13,11 @@
 #define MAX_CONN 5
 
 /* Logging level. Valid options are:
- * DEBUG = 1,
- * INFO  = 2,
- * WARN  = 3,
- * ERROR = 4,
- * FATAL = 5,
+ * DEBUG,
+ * INFO,
+ * WARN,
+ * ERROR,
+ * FATAL
  */
 #define LOG_LEVEL INFO
 

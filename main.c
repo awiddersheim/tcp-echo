@@ -211,11 +211,14 @@ void worker__process(struct worker worker)
 
 int main(int argc, char *argv[])
 {
-    unsigned int i = 0;
+    int i = 0;
+    int result = 0;
     unsigned int quit = 0;
-    struct worker workers[WORKERS];
     char *master_title = "master";
     int pid;
+    uv_cpu_info_t *cpu_info;
+    int cpu_count;
+    struct worker *workers;
 
     initproctitle(argc, argv);
     setproctitle("tcp-echo", "master");
@@ -227,12 +230,23 @@ int main(int argc, char *argv[])
     signal(SIGTERM, signal_recv);
     signal(SIGINT, signal_recv);
 
-    logg(INFO, "Starting (%d) workers", WORKERS);
+    if ((result = uv_cpu_info(&cpu_info, &cpu_count)) < 0)
+        loggu(ERROR, result, "Could not determine number of CPUs");
+
+    uv_free_cpu_info(cpu_info, cpu_count);
+
+    #if defined(WORKERS) && WORKERS > 0
+    cpu_count = WORKERS;
+    #endif
+
+    logg(INFO, "Starting (%d) workers", cpu_count);
+
+    workers = xmalloc(sizeof(struct worker) * cpu_count);
 
     /* TODO(awiddersheim): When starting workers, use CPU count as the number
      * of workers to start. Also, pin each worker to it's own CPU.
      */
-    while (i < WORKERS) {
+    while (i < cpu_count) {
         if (init_worker(&workers[i], i + 1) < 0)
             continue;
 
@@ -286,7 +300,7 @@ int main(int argc, char *argv[])
         sleep(1);
     }
 
-    for (i = 0; i < WORKERS; i++) {
+    for (i = 0; i < cpu_count; i++) {
         logg(INFO, "Terminating (worker-%d) with pid (%d)", workers[i].id, workers[i].pid);
 
         kill(workers[i].pid, SIGTERM);
@@ -295,6 +309,8 @@ int main(int argc, char *argv[])
 
         logg(INFO, "Worker (%d) exited with (%d)", workers[i].id, WEXITSTATUS(workers[i].status));
     }
+
+    free(workers);
 
     return 0;
 }

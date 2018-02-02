@@ -36,4 +36,8 @@ void log_write(log_level log_level, const char *message, ...);
     logg(L, M " errno (%d) msg (%s)", ##__VA_ARGS__, previous_errno, buffer); \
 } while(0)
 
+#define loggu(L, E, M, ...) do {\
+    logg(L, M " errno (%d) msg (%s: %s)", ##__VA_ARGS__, E, uv_err_name(E), uv_strerror(E)); \
+} while(0)
+
 #endif
