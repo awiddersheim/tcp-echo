@@ -15,6 +15,7 @@
 #include <semaphore.h>
 #include <signal.h>
 #include <unistd.h>
+#include <uv.h>
 #include "config.h"
 #include "error.h"
 #include "log.h"

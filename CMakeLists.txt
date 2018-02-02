@@ -33,7 +33,15 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU|.*Clang")
   endforeach()
 endif()
 
+set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
+
+set(LIBUV_DEPS_DIR ${CMAKE_SOURCE_DIR}/deps/libuv)
+configure_file(cmake/in/libuv.in ${LIBUV_DEPS_DIR}/CMakeLists.txt)
+execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" . WORKING_DIRECTORY ${LIBUV_DEPS_DIR})
+execute_process(COMMAND ${CMAKE_COMMAND} --build . WORKING_DIRECTORY ${LIBUV_DEPS_DIR})
+include_directories(${LIBUV_DEPS_DIR}/src/include)
+find_library(LIBUV_STATIC_LIBRARY NAMES libuv.a libuv PATHS ${LIBUV_DEPS_DIR}/src PATH_SUFFIXES .libs Release NO_DEFAULT_PATH)
 
 add_executable(
     tcp-echo
@@ -44,4 +52,4 @@ add_executable(
     utils.c
 )
 
-target_link_libraries(tcp-echo PRIVATE ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(tcp-echo PRIVATE ${CMAKE_THREAD_LIBS_INIT} ${LIBUV_STATIC_LIBRARY})
