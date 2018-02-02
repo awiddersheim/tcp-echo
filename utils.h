@@ -21,9 +21,9 @@ void setproctitle (const char *prog, const char *txt);
 void set_thread_name(const char *name, ...);
 void get_thread_name(char *name, size_t size);
 
-#define xmalloc(x) _xmalloc(x, __FILE__, __LINE__)
+#define xmalloc(x) __xmalloc(x, __FILE__, __LINE__)
 
-static inline void *_xmalloc(size_t size, const char *file, int line)
+static inline void *__xmalloc(size_t size, const char *file, int line)
 {
     void *ptr = malloc(size);
 
