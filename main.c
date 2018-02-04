@@ -122,6 +122,7 @@ void worker__process(struct worker worker)
 
     /* Timeout for select() */
     tv.tv_sec = 1;
+    tv.tv_usec = 0;
 
     while (quit != 1) {
         if (sig_recv != 0) {
