@@ -32,7 +32,7 @@ void log_write(log_level log_level, const char *message, ...);
 #define log_errno(L, M, ...) do {\
     char buffer[1024]; \
     int previous_errno = errno; \
-    strerror_x(errno, buffer, sizeof(buffer)); \
+    xstrerror(errno, buffer, sizeof(buffer)); \
     logg(L, M " errno (%d) msg (%s)", ##__VA_ARGS__, previous_errno, buffer); \
 } while(0)
 
