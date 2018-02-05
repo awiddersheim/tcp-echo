@@ -18,9 +18,6 @@ int update_worker_pid(struct worker *worker, int pid);
 void initproctitle (int argc, char **argv);
 void setproctitle (const char *prog, const char *txt);
 
-void set_thread_name(const char *name, ...);
-void get_thread_name(char *name, size_t size);
-
 #define xmalloc(x) __xmalloc(x, __FILE__, __LINE__)
 
 static inline void *__xmalloc(size_t size, const char *file, int line)

@@ -129,32 +129,3 @@ int update_worker_pid(struct worker *worker, int pid)
 
     return 0;
 }
-
-void set_thread_name(const char *name, ...)
-{
-    va_list args;
-    char buffer[16];
-
-    va_start(args, name);
-    vsnprintf(buffer, sizeof(buffer), name, args);
-    va_end(args);
-
-    #ifdef PTHREAD_NAMES
-    pthread_setname_np(buffer);
-    #elif defined(PRCTL_NAMES)
-    prctl(PR_SET_NAME, buffer);
-    #else
-    logg(WARN, "No method to set thread name (%s)", buffer);
-    #endif
-}
-
-void get_thread_name(char *name, __attribute__((unused)) size_t size)
-{
-    #ifdef PTHREAD_NAMES
-    pthread_getname_np(pthread_self(), name, size);
-    #elif defined(PRCTL_NAMES)
-    prctl(PR_GET_NAME, name);
-    #else
-    logg(WARN, "No method to get thread name (%s)", name);
-    #endif
-}

@@ -29,11 +29,6 @@ void *handler__thread(void *_in)
     int data;
     int result;
 
-    if (conn->id > 0)
-        set_thread_name("Handler-%d", conn->id);
-    else
-        set_thread_name("Handler", conn->id);
-
     pthread_cleanup_push(handler__cleanup, conn);
 
     for (;;) {
@@ -106,7 +101,6 @@ void worker__process(struct worker worker)
 
     setproctitle("tcp-echo", "worker");
     title = worker.title;
-    set_thread_name("MainThread");
 
     logg(INFO, "Worker (%d) created", worker.id);
 
@@ -223,7 +217,6 @@ int main(int argc, char *argv[])
     initproctitle(argc, argv);
     setproctitle("tcp-echo", "master");
     title = master_title;
-    set_thread_name("MainThread");
 
     sig_recv = 0;
     signal(SIGQUIT, signal_recv);
