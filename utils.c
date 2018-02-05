@@ -22,13 +22,13 @@ char *key_init(int worker_id)
 void sock_setreuse(int sock, int reuse)
 {
     if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) == -1)
-        log_errno(FATAL, "Could not set address reuse");
+        logge(FATAL, "Could not set address reuse");
 }
 
 void sock_setreuse_port(int sock, int reuse)
 {
     if (setsockopt(sock, SOL_SOCKET, SO_REUSEPORT, &reuse, sizeof(reuse)) == -1)
-        log_errno(FATAL, "Could not set port reuse");
+        logge(FATAL, "Could not set port reuse");
 }
 
 void sock_bind(int sock, int port)
@@ -42,13 +42,13 @@ void sock_bind(int sock, int port)
     addr.sin_port = htons(port);
 
     if (bind(sock, (struct sockaddr *)&addr, sizeof(addr)) < 0)
-        log_errno(FATAL, "Could not bind to port (%d)", port);
+        logge(FATAL, "Could not bind to port (%d)", port);
 }
 
 void sock_listen(int sock, int maxconn, int port)
 {
     if (listen(sock, maxconn) < 0)
-        log_errno(FATAL, "Could not listen on port (%d)", port);
+        logge(FATAL, "Could not listen on port (%d)", port);
 }
 
 int server_init(int port, int maxconn)
@@ -79,11 +79,11 @@ sem_t *semaphore_init(char *key)
          * documentation to support this though.
          */
         if (errno != ENOENT && errno != EINVAL)
-            log_errno(FATAL, "Could not sem_unlink() key (%s)", key);
+            logge(FATAL, "Could not sem_unlink() key (%s)", key);
     }
 
     if ((mutex = sem_open(key, O_CREAT, 0644, HANDLERS - 1)) == SEM_FAILED)
-        log_errno(FATAL, "Could not create semaphore key (%s)", key);
+        logge(FATAL, "Could not create semaphore key (%s)", key);
 
     return mutex;
 }
@@ -95,10 +95,10 @@ pthread_attr_t *thread_init()
     attr = xmalloc(sizeof(pthread_attr_t));
 
     if (pthread_attr_init(attr) != 0)
-        log_errno(FATAL, "Could not create thread attribute");
+        logge(FATAL, "Could not create thread attribute");
 
     if (pthread_attr_setdetachstate(attr, PTHREAD_CREATE_DETACHED) != 0)
-        log_errno(FATAL, "Could set detached state");
+        logge(FATAL, "Could set detached state");
 
     return attr;
 }
@@ -114,7 +114,7 @@ int init_worker(struct worker *worker, int id)
     result = snprintf(worker->title, sizeof(worker->title), "worker-%d", id);
 
     if (result < 0) {
-        log_errno(ERROR, "Could not write worker title for (worker-%d)", id);
+        logge(ERROR, "Could not write worker title for (worker-%d)", id);
         return -1;
     } else if ((unsigned long)result >= sizeof(worker->title)) {
         logg(WARN, "Could not write entire worker title for (worker-%d)", id);

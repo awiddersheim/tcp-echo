@@ -28,7 +28,7 @@ static inline void *__xmalloc(size_t size, const char *file, int line)
     void *ptr = malloc(size);
 
     if (ptr == NULL)
-        log_errno(FATAL, "Could not allocate memory in (%s) on line (%d)", file, line);
+        logge(FATAL, "Could not allocate memory in (%s) on line (%d)", file, line);
 
     return ptr;
 }

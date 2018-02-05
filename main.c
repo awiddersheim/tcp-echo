@@ -46,7 +46,7 @@ void *handler__thread(void *_in)
             if (errno == EAGAIN || errno == EINTR)
                 continue;
 
-            log_errno(
+            logge(
                 FATAL,
                 "Could not recv() from %s:%d in (%d)",
                 inet_ntoa(conn->addr.sin_addr),
@@ -59,7 +59,7 @@ void *handler__thread(void *_in)
                 if (errno == EAGAIN || errno == EINTR)
                     continue;
 
-                log_errno(
+                logge(
                     FATAL,
                     "Could not send() to %s:%d",
                     inet_ntoa(conn->addr.sin_addr),
@@ -148,7 +148,7 @@ void worker__process(struct worker worker)
             if (errno == EINTR)
                 continue;
             else
-                log_errno(FATAL, "Could not select() on socket");
+                logge(FATAL, "Could not select() on socket");
         }
 
         if (FD_ISSET(sock, &fds)) {
@@ -156,7 +156,7 @@ void worker__process(struct worker worker)
                 if (errno == EINTR || errno == EAGAIN ||  errno == EWOULDBLOCK)
                     continue;
                 else
-                    log_errno(
+                    logge(
                         FATAL,
                         "Could not accept() connection from %s:%d",
                         inet_ntoa(addr.sin_addr),
@@ -194,7 +194,7 @@ void worker__process(struct worker worker)
             sem_wait(mutex);
 
             if (pthread_create(&thread, attr, &handler__thread, conn) != 0)
-                log_errno(FATAL, "Could not start handler thread");
+                logge(FATAL, "Could not start handler thread");
         }
     }
 
@@ -243,7 +243,7 @@ int main(int argc, char *argv[])
         switch (pid) {
             case -1:
                 /* failure */
-                log_errno(ERROR, "Could not start worker (%d)... retrying", i);
+                logge(ERROR, "Could not start worker (%d)... retrying", i);
                 continue;
             case 0:
                 /* child */
