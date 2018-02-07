@@ -34,4 +34,9 @@ void log_write(log_level log_level, const char *message, ...);
 
 #define loggu(L, E, M, ...) logg(L, M " errno (%d) msg (%s: %s)", ##__VA_ARGS__, E, uv_err_name(E), uv_strerror(E))
 
+#define loggl(L, M, ...) do {\
+    int error = uv_last_error(loop); \
+    logg(L, M " errno (%d) msg (%s: %s)", ##__VA_ARGS__, error, uv_err_name(error), uv_strerror(error)); \
+} while(0)
+
 #endif

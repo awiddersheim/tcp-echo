@@ -9,8 +9,8 @@
 /* Port number to listen on */
 #define PORT_NUMBER 8090
 
-/* Maximum connections to hold in backlog */
-#define MAX_CONN 5
+/* Number of connections allowed in the backlog */
+#define CONNECTION_BACKLOG 128
 
 /* Logging level. Valid options are:
  * DEBUG,

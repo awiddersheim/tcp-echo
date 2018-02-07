@@ -4,6 +4,10 @@ include(CheckCSourceCompiles)
 
 project(tcp-echo)
 
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
+
 CHECK_C_SOURCE_COMPILES("
   #include <string.h>
   int main() { char x = *strerror_r(0, &x, sizeof(x)); return 0; }
@@ -52,4 +56,4 @@ add_executable(
     utils.c
 )
 
-target_link_libraries(tcp-echo PRIVATE ${CMAKE_THREAD_LIBS_INIT} ${LIBUV_STATIC_LIBRARY})
+target_link_libraries(tcp-echo PRIVATE ${LIBUV_STATIC_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})

@@ -38,6 +38,8 @@ struct worker {
     char title[256];
 };
 
+extern uv_loop_t *loop;
+
 #include "utils.h"
 
 #endif

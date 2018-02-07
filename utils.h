@@ -3,17 +3,10 @@
 
 #include "main.h"
 
-int create_sock();
-char *key_init(int worker_id);
-void set_setreuse(int sock, int reuse);
-void set_setreuse_port(int sock, int reuse);
-void sock_bind(int sock, int port);
-void sock_listen(int sock, int port, int maxconn);
-int server_init(int port, int maxconn);
-sem_t *semaphore_init(char *key);
-pthread_attr_t *thread_init();
+void sock_setreuse_port(int sock, int reuse);
 int init_worker(struct worker *worker, int id);
 int update_worker_pid(struct worker *worker, int pid);
+char *xgetpeername(uv_tcp_t *handle);
 
 void initproctitle (int argc, char **argv);
 void setproctitle (const char *prog, const char *txt);
@@ -30,7 +23,7 @@ static inline void *__xmalloc(size_t size, const char *file, int line)
     return ptr;
 }
 
-static inline int xvasprintf(char **strp, const char *format, va_list args)
+static inline void xvasprintf(char **strp, const char *format, va_list args)
 {
     int result;
     va_list args_tmp;
@@ -47,20 +40,15 @@ static inline int xvasprintf(char **strp, const char *format, va_list args)
 
     if (result < 0)
         logg(FATAL, "Could not create string (%d)", result);
-
-    return result;
 }
 
-static inline int xasprintf(char **strp, const char *format, ...)
+static inline void xasprintf(char **strp, const char *format, ...)
 {
-    int result;
     va_list args;
 
     va_start(args, format);
-    result = xvasprintf(strp, format, args);
+    xvasprintf(strp, format, args);
     va_end(args);
-
-    return result;
 }
 
 #endif
