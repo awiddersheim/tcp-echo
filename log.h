@@ -8,7 +8,7 @@ typedef enum {
     INFO  = 2,
     WARN  = 3,
     ERROR = 4,
-    FATAL = 5,
+    FATAL = 5
 } log_level;
 
 static const char *level_names[] = {
