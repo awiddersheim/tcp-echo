@@ -126,8 +126,12 @@ int worker__process(struct worker worker)
     logg(INFO, "Worker (%d) created", worker.id);
 
     uv_tcp_init_ex(worker_loop, &server, AF_INET);
+
     uv_fileno((uv_handle_t *)&server, &fd);
     sock_setreuse_port(fd, 1);
+
+    if ((result = uv_tcp_nodelay(&server, 1)) < 0)
+        loggu(FATAL, result, "Could not set nodelay on socket");
 
     uv_ip4_addr("0.0.0.0", PORT_NUMBER, &addr);
 
