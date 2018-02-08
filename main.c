@@ -168,7 +168,6 @@ int main(int argc, char *argv[])
     unsigned int quit = 0;
     char *master_title = "master";
     int pid;
-    struct worker *workers;
     uv_cpu_info_t *cpu_info;
     int cpu_count;
     uv_loop_t master_loop;
@@ -202,7 +201,7 @@ int main(int argc, char *argv[])
 
     logg(INFO, "Starting (%d) workers", cpu_count);
 
-    workers = xmalloc(sizeof(struct worker) * cpu_count);
+    struct worker workers[cpu_count];
 
     /* TODO(awiddersheim): Pin each worker to it's own CPU. */
     for (i = 0; i < cpu_count;) {
@@ -233,7 +232,6 @@ int main(int argc, char *argv[])
 
                 update_worker_pid(&workers[i], getpid());
                 result = worker__process(workers[i]);
-                free(workers);
                 return result;
                 break;
             default:
@@ -282,8 +280,6 @@ int main(int argc, char *argv[])
 
         logg(INFO, "Worker (%d) exited with (%d)", workers[i].id, WEXITSTATUS(workers[i].status));
     }
-
-    free(workers);
 
     logg(INFO, "All done");
 
