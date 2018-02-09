@@ -37,7 +37,7 @@ void echo_write(uv_write_t *request, int status)
     write_req_t *write_request = (write_req_t*) request;
 
     if (status)
-        loggu(ERROR, status, "Could not write to (%s)", write_request->request.data);
+        logguv(ERROR, status, "Could not write to (%s)", write_request->request.data);
 
     free_write_request(write_request);
 }
@@ -48,6 +48,7 @@ void echo_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *buffer)
 
     if (nread > 0) {
         write_request = xmalloc(sizeof(write_req_t));
+        memset(write_request, 0x0, sizeof(write_req_t));
 
         write_request->buffer = uv_buf_init(buffer->base, nread);
         write_request->request.data = client->data;
@@ -59,7 +60,7 @@ void echo_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *buffer)
 
     if (nread < 0) {
         if (nread != UV_EOF)
-            loggu(ERROR, (int) nread, "Could not read from (%s)", client->data);
+            logguv(ERROR, (int) nread, "Could not read from (%s)", client->data);
 
         uv_close((uv_handle_t*) client, on_close);
     }
@@ -71,13 +72,14 @@ void on_connection(uv_stream_t *server, int status)
 {
     char *peer;
     int result;
+    uv_tcp_t *client;
 
     if (status < 0) {
-        loggu(ERROR, status, "Could not handle new connection");
+        logguv(ERROR, status, "Could not handle new connection");
         return;
     }
 
-    uv_tcp_t *client = malloc(sizeof(uv_tcp_t));
+    client = malloc(sizeof(uv_tcp_t));
     uv_tcp_init(uv_default_loop(), client);
     client->data = NULL;
 
@@ -90,7 +92,7 @@ void on_connection(uv_stream_t *server, int status)
 
         client->data = peer;
     } else {
-        loggu(ERROR, result, "Could not accept new connection");
+        logguv(ERROR, result, "Could not accept new connection");
 
         uv_close((uv_handle_t*) client, on_close);
     }
@@ -108,11 +110,13 @@ int worker__process(struct worker worker)
     uv_loop_t *worker_loop;
     uv_tcp_t server;
 
-    if ((worker_loop = uv_default_loop()) == NULL)
-        logg(FATAL, "Could not get default loop");
-
     setproctitle("tcp-echo", "worker");
     title = worker.title;
+
+    logg(INFO, "Worker (%d) created", worker.id);
+
+    if ((worker_loop = uv_default_loop()) == NULL)
+        logg(FATAL, "Could not get default loop");
 
     sig_recv = 0;
     uv_signal_init(worker_loop, &sigquit);
@@ -122,23 +126,21 @@ int worker__process(struct worker worker)
     uv_signal_start(&sigterm, signal_recv, SIGTERM);
     uv_signal_start(&sigint, signal_recv, SIGINT);
 
-    logg(INFO, "Worker (%d) created", worker.id);
-
     uv_tcp_init_ex(worker_loop, &server, AF_INET);
 
     uv_fileno((uv_handle_t *)&server, &fd);
     sock_setreuse_port(fd, 1);
 
     if ((result = uv_tcp_nodelay(&server, 1)) < 0)
-        loggu(FATAL, result, "Could not set nodelay on socket");
+        logguv(FATAL, result, "Could not set nodelay on socket");
 
     uv_ip4_addr("0.0.0.0", PORT_NUMBER, &addr);
 
     if ((result = uv_tcp_bind(&server, (const struct sockaddr*) &addr, 0)) < 0)
-        loggu(FATAL, result, "Could not bind to port (%d)", PORT_NUMBER);
+        logguv(FATAL, result, "Could not bind to port (%d)", PORT_NUMBER);
 
     if ((result = uv_listen((uv_stream_t*) &server, CONNECTION_BACKLOG, on_connection)) < 0)
-        loggu(FATAL, result, "Could not listen for connections on (%d)", PORT_NUMBER);
+        logguv(FATAL, result, "Could not listen for connections on (%d)", PORT_NUMBER);
 
     while (quit != 1)
     {
@@ -184,7 +186,7 @@ int main(int argc, char *argv[])
     title = master_title;
 
     if ((result = uv_loop_init(&master_loop)) < 0)
-        loggu(FATAL, result, "Could not create master loop");
+        logguv(FATAL, result, "Could not create master loop");
 
     sig_recv = 0;
     uv_signal_init(&master_loop, &sigquit);
@@ -195,7 +197,7 @@ int main(int argc, char *argv[])
     uv_signal_start(&sigint, signal_recv, SIGINT);
 
     if ((result = uv_cpu_info(&cpu_info, &cpu_count)) < 0)
-        loggu(FATAL, result, "Could not determine number of CPUs");
+        logguv(FATAL, result, "Could not determine number of CPUs");
 
     uv_free_cpu_info(cpu_info, cpu_count);
 
@@ -206,6 +208,7 @@ int main(int argc, char *argv[])
     logg(INFO, "Starting (%d) workers", cpu_count);
 
     workers = xmalloc(sizeof(struct worker) * cpu_count);
+    memset(workers, 0x0, sizeof(struct worker) * cpu_count);
 
     /* TODO(awiddersheim): Pin each worker to it's own CPU. */
     for (i = 0; i < cpu_count;) {

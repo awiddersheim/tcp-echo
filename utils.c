@@ -43,12 +43,12 @@ char *xgetpeername(uv_tcp_t *handle)
     int failure = 1;
 
     if ((result = uv_tcp_getpeername(handle, (struct sockaddr*) &addr, &addrlen)) < 0) {
-        loggu(ERROR, result, "Could not get peer name");
+        logguv(ERROR, result, "Could not get peer name");
         goto cleanup;
     }
 
     if ((result = uv_inet_ntop(AF_INET, &addr.sin_addr, buffer, sizeof(buffer))) < 0) {
-        loggu(ERROR, result, "Could not get text address");
+        logguv(ERROR, result, "Could not get text address");
         goto cleanup;
     }
 

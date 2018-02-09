@@ -13,7 +13,7 @@ void setproctitle (const char *prog, const char *txt);
 
 #define xmalloc(x) __xmalloc(x, __FILE__, __LINE__)
 
-static inline void *__xmalloc(size_t size, const char *file, int line)
+static __inline void *__xmalloc(size_t size, const char *file, int line)
 {
     void *ptr = malloc(size);
 
@@ -23,13 +23,13 @@ static inline void *__xmalloc(size_t size, const char *file, int line)
     return ptr;
 }
 
-static inline void xvasprintf(char **strp, const char *format, va_list args)
+static __inline void xvasprintf(char **strp, const char *format, va_list args)
 {
     int result;
     va_list args_tmp;
 
     /* Calculate length needed for string */
-    va_copy(args_tmp, args);
+    __va_copy(args_tmp, args);
     result = (vsnprintf(NULL, 0, format, args_tmp) + 1);
     va_end(args_tmp);
 
@@ -42,7 +42,7 @@ static inline void xvasprintf(char **strp, const char *format, va_list args)
         logg(FATAL, "Could not create string (%d)", result);
 }
 
-static inline void xasprintf(char **strp, const char *format, ...)
+static __inline void xasprintf(char **strp, const char *format, ...)
 {
     va_list args;
 
