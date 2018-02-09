@@ -2,8 +2,6 @@
 
 volatile sig_atomic_t sig_recv;
 
-uv_loop_t *worker_loop;
-
 typedef struct {
     uv_write_t request;
     uv_buf_t buffer;
@@ -80,7 +78,7 @@ void on_connection(uv_stream_t *server, int status)
     }
 
     uv_tcp_t *client = malloc(sizeof(uv_tcp_t));
-    uv_tcp_init(worker_loop, client);
+    uv_tcp_init(uv_default_loop(), client);
     client->data = NULL;
 
     if ((result = uv_accept(server, (uv_stream_t*) client)) >= 0) {
@@ -107,6 +105,7 @@ int worker__process(struct worker worker)
     uv_signal_t sigquit;
     uv_signal_t sigterm;
     uv_signal_t sigint;
+    uv_loop_t *worker_loop;
     uv_tcp_t server;
 
     if ((worker_loop = uv_default_loop()) == NULL)
@@ -180,12 +179,12 @@ int main(int argc, char *argv[])
     uv_signal_t sigterm;
     uv_signal_t sigint;
 
-    if ((result = uv_loop_init(&master_loop)) < 0)
-        loggu(FATAL, result, "Could not create master loop");
-
     initproctitle(argc, argv);
     setproctitle("tcp-echo", "master");
     title = master_title;
+
+    if ((result = uv_loop_init(&master_loop)) < 0)
+        loggu(FATAL, result, "Could not create master loop");
 
     sig_recv = 0;
     uv_signal_init(&master_loop, &sigquit);
@@ -228,6 +227,7 @@ int main(int argc, char *argv[])
                 /* TODO(awiddersheim): Build in some helper functions to
                  * close down loops easier.
                  */
+                uv_loop_fork(&master_loop);
                 uv_close((uv_handle_t *) &sigquit, NULL);
                 uv_close((uv_handle_t *) &sigterm, NULL);
                 uv_close((uv_handle_t *) &sigint, NULL);
