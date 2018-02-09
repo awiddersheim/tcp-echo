@@ -5,6 +5,7 @@ volatile sig_atomic_t sig_recv;
 typedef struct {
     uv_write_t request;
     uv_buf_t buffer;
+    uv_stream_t *client;
 } write_req_t;
 
 void signal_recv(__attribute__((unused)) uv_signal_t *handle, int signal)
@@ -37,7 +38,7 @@ void echo_write(uv_write_t *request, int status)
     write_req_t *write_request = (write_req_t*) request;
 
     if (status)
-        logguv(ERROR, status, "Could not write to (%s)", write_request->request.data);
+        logguv(ERROR, status, "Could not write to (%s)", write_request->client->data);
 
     free_write_request(write_request);
 }
@@ -51,9 +52,9 @@ void echo_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *buffer)
         memset(write_request, 0x0, sizeof(write_req_t));
 
         write_request->buffer = uv_buf_init(buffer->base, nread);
-        write_request->request.data = client->data;
+        write_request->client = client;
 
-        uv_write(&write_request->request, client, &write_request->buffer, 1, echo_write);
+        uv_write((uv_write_t*) write_request, client, &write_request->buffer, 1, echo_write);
 
         return;
     }
