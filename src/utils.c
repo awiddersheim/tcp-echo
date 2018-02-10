@@ -40,12 +40,8 @@ int init_worker(struct worker *worker, int id)
 
     result = snprintf(worker->title, sizeof(worker->title), "worker-%d", id);
 
-    if (result < 0) {
-        logge(ERROR, "Could not write worker title for (worker-%d)", id);
-        return -1;
-    } else if ((unsigned long)result >= sizeof(worker->title)) {
-        logg(WARN, "Could not write entire worker title for (worker-%d)", id);
-    }
+    if (result >= 0 && (size_t) result >= sizeof(worker->title))
+        logg(WARN, "Could not write entire worker title (worker-%d)", id);
 
     return 0;
 }
