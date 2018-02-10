@@ -21,6 +21,12 @@
  */
 #define LOG_LEVEL INFO
 
+/* Enable timestamps in log lines. May be helpful but also
+ * unnecessary in some cases as process supervisors like
+ * systemd will do this.
+ */
+#define TIMESTAMPS
+
 /* Define if strerror_r returns char * */
 #cmakedefine STRERROR_R_CHAR_P
 

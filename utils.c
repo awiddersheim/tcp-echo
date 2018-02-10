@@ -1,5 +1,29 @@
 #include "main.h"
 
+void gettimestamp(char *buffer)
+{
+    time_t now;
+    struct tm tm;
+    struct timeval tv;
+
+    now = time(NULL);
+    gmtime_r(&now, &tm);
+    gettimeofday(&tv, NULL);
+
+    snprintf(
+        buffer,
+        TIMESTAMP_MAX,
+        "%d-%02d-%02d %02d:%02d:%02d.%03d",
+        tm.tm_year + 1900,
+        tm.tm_mon + 1,
+        tm.tm_mday,
+        tm.tm_hour,
+        tm.tm_min,
+        tm.tm_sec,
+        tv.tv_usec / 1000
+    );
+}
+
 void sock_setreuse_port(int sock, int reuse)
 {
     if (setsockopt(sock, SOL_SOCKET, SO_REUSEPORT, &reuse, sizeof(reuse)) == -1)

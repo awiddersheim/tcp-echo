@@ -16,15 +16,24 @@ static const char *level_names[] = {
 void vlogg(log_level_t log_level, const char *message, va_list args)
 {
     char buffer[LOG_MAX];
+    char timestamp[TIMESTAMP_MAX];
     int result;
 
     if (log_level < LOG_LEVEL)
         return;
 
+    timestamp[0] = '\0';
+
+    #ifdef TIMESTAMPS
+    gettimestamp(timestamp);
+    snprintf(timestamp, TIMESTAMP_MAX, "%s - ", timestamp);
+    #endif
+
     result = snprintf(
         buffer,
         LOG_MAX,
-        "%s (%s)(%d): %s\n",
+        "%s[%s] (%s)(%d): %s\n",
+        timestamp,
         level_names[log_level - 1],
         title,
         getpid(),
