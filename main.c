@@ -15,7 +15,7 @@ void signal_recv(__attribute__((unused)) uv_signal_t *handle, int signal)
 
 void alloc_buffer(__attribute__((unused)) uv_handle_t *handle, size_t size, uv_buf_t *buffer)
 {
-    *buffer = uv_buf_init((char*) malloc(size), size);
+    *buffer = uv_buf_init((char *) malloc(size), size);
 }
 
 void free_write_request(write_req_t *write_request)
@@ -35,7 +35,7 @@ void on_close(uv_handle_t *handle)
 
 void echo_write(uv_write_t *request, int status)
 {
-    write_req_t *write_request = (write_req_t*) request;
+    write_req_t *write_request = (write_req_t *) request;
 
     if (status)
         logguv(ERROR, status, "Could not write to (%s)", write_request->client->data);
@@ -54,7 +54,7 @@ void echo_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *buffer)
         write_request->buffer = uv_buf_init(buffer->base, nread);
         write_request->client = client;
 
-        uv_write((uv_write_t*) write_request, client, &write_request->buffer, 1, echo_write);
+        uv_write((uv_write_t *) write_request, client, &write_request->buffer, 1, echo_write);
 
         return;
     }
@@ -63,7 +63,7 @@ void echo_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *buffer)
         if (nread != UV_EOF)
             logguv(ERROR, (int) nread, "Could not read from (%s)", client->data);
 
-        uv_close((uv_handle_t*) client, on_close);
+        uv_close((uv_handle_t *) client, on_close);
     }
 
     free(buffer->base);
@@ -84,8 +84,8 @@ void on_connection(uv_stream_t *server, int status)
     uv_tcp_init(uv_default_loop(), client);
     client->data = NULL;
 
-    if ((result = uv_accept(server, (uv_stream_t*) client)) >= 0) {
-        uv_read_start((uv_stream_t*) client, alloc_buffer, echo_read);
+    if ((result = uv_accept(server, (uv_stream_t *) client)) >= 0) {
+        uv_read_start((uv_stream_t *) client, alloc_buffer, echo_read);
 
         peer = xgetpeername(client);
 
@@ -95,7 +95,7 @@ void on_connection(uv_stream_t *server, int status)
     } else {
         logguv(ERROR, result, "Could not accept new connection");
 
-        uv_close((uv_handle_t*) client, on_close);
+        uv_close((uv_handle_t *) client, on_close);
     }
 }
 
@@ -137,10 +137,10 @@ int worker__process(struct worker worker)
 
     uv_ip4_addr("0.0.0.0", PORT_NUMBER, &addr);
 
-    if ((result = uv_tcp_bind(&server, (const struct sockaddr*) &addr, 0)) < 0)
+    if ((result = uv_tcp_bind(&server, (const struct sockaddr *) &addr, 0)) < 0)
         logguv(FATAL, result, "Could not bind to port (%d)", PORT_NUMBER);
 
-    if ((result = uv_listen((uv_stream_t*) &server, CONNECTION_BACKLOG, on_connection)) < 0)
+    if ((result = uv_listen((uv_stream_t *) &server, CONNECTION_BACKLOG, on_connection)) < 0)
         logguv(FATAL, result, "Could not listen for connections on (%d)", PORT_NUMBER);
 
     while (quit != 1)
