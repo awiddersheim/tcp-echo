@@ -13,16 +13,6 @@ CHECK_C_SOURCE_COMPILES("
   int main() { char x = *strerror_r(0, &x, sizeof(x)); return 0; }
   " STRERROR_R_CHAR_P)
 
-CHECK_C_SOURCE_COMPILES("
-  #include <pthread.h>
-  int main() { pthread_setname_np(\"foo\"); return 0; }
-  " PTHREAD_NAMES)
-
-CHECK_C_SOURCE_COMPILES("
-  #include <sys/prctl.h>
-  int main() { prctl(PR_SET_NAME, \"foo\"); return 0; }
-  " PRCTL_NAMES)
-
 configure_file(
   ${PROJECT_SOURCE_DIR}/src/config.h.cmake
   ${PROJECT_SOURCE_DIR}/src/config.h

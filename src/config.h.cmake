@@ -29,6 +29,3 @@
 
 /* Define if strerror_r returns char * */
 #cmakedefine STRERROR_R_CHAR_P
-
-/* Define if SET_NAME for prctl() is available */
-#cmakedefine PRCTL_NAMES
