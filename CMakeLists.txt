@@ -24,8 +24,8 @@ CHECK_C_SOURCE_COMPILES("
   " PRCTL_NAMES)
 
 configure_file(
-  ${PROJECT_SOURCE_DIR}/config.h.cmake
-  ${PROJECT_SOURCE_DIR}/config.h
+  ${PROJECT_SOURCE_DIR}/src/config.h.cmake
+  ${PROJECT_SOURCE_DIR}/src/config.h
 )
 
 set(CMAKE_C_FLAGS "-std=gnu89")
@@ -49,13 +49,4 @@ execute_process(COMMAND ${CMAKE_COMMAND} --build . WORKING_DIRECTORY ${LIBUV_DEP
 include_directories(${LIBUV_DEPS_DIR}/src/include)
 find_library(LIBUV_STATIC_LIBRARY NAMES libuv.a libuv PATHS ${LIBUV_DEPS_DIR}/src PATH_SUFFIXES .libs Release NO_DEFAULT_PATH)
 
-add_executable(
-    tcp-echo
-    main.c
-    error.c
-    log.c
-    setproctitle.c
-    utils.c
-)
-
-target_link_libraries(tcp-echo PRIVATE ${LIBUV_STATIC_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
+add_subdirectory(src)
