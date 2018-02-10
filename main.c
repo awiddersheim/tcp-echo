@@ -2,6 +2,8 @@
 
 volatile sig_atomic_t sig_recv;
 
+uv_loop_t worker_loop;
+
 typedef struct {
     uv_write_t request;
     uv_buf_t buffer;
@@ -81,7 +83,7 @@ void on_connection(uv_stream_t *server, int status)
     }
 
     client = malloc(sizeof(uv_tcp_t));
-    uv_tcp_init(uv_default_loop(), client);
+    uv_tcp_init(&worker_loop, client);
     client->data = NULL;
 
     if ((result = uv_accept(server, (uv_stream_t *) client)) >= 0) {
@@ -108,7 +110,6 @@ int worker__process(struct worker worker)
     uv_signal_t sigquit;
     uv_signal_t sigterm;
     uv_signal_t sigint;
-    uv_loop_t *worker_loop;
     uv_tcp_t server;
 
     setproctitle("tcp-echo", "worker");
@@ -116,18 +117,18 @@ int worker__process(struct worker worker)
 
     logg(INFO, "Worker (%d) created", worker.id);
 
-    if ((worker_loop = uv_default_loop()) == NULL)
-        logg(FATAL, "Could not get default loop");
+    if ((result = uv_loop_init(&worker_loop)) < 0)
+        logguv(FATAL, result, "Could not create worker loop");
 
     sig_recv = 0;
-    uv_signal_init(worker_loop, &sigquit);
-    uv_signal_init(worker_loop, &sigterm);
-    uv_signal_init(worker_loop, &sigint);
+    uv_signal_init(&worker_loop, &sigquit);
+    uv_signal_init(&worker_loop, &sigterm);
+    uv_signal_init(&worker_loop, &sigint);
     uv_signal_start(&sigquit, signal_recv, SIGQUIT);
     uv_signal_start(&sigterm, signal_recv, SIGTERM);
     uv_signal_start(&sigint, signal_recv, SIGINT);
 
-    uv_tcp_init_ex(worker_loop, &server, AF_INET);
+    uv_tcp_init_ex(&worker_loop, &server, AF_INET);
 
     uv_fileno((uv_handle_t *)&server, &fd);
     sock_setreuse_port(fd, 1);
@@ -142,6 +143,8 @@ int worker__process(struct worker worker)
 
     if ((result = uv_listen((uv_stream_t *) &server, CONNECTION_BACKLOG, on_connection)) < 0)
         logguv(FATAL, result, "Could not listen for connections on (%d)", PORT_NUMBER);
+
+    logg(INFO, "Listening on 0.0.0.0:%d", PORT_NUMBER);
 
     while (quit != 1)
     {
@@ -159,7 +162,7 @@ int worker__process(struct worker worker)
             sig_recv = 0;
         }
 
-        uv_run(worker_loop, UV_RUN_ONCE);
+        uv_run(&worker_loop, UV_RUN_ONCE);
     }
 
     logg(INFO, "Worker (%d) shutting down", worker.id);
@@ -253,7 +256,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    logg(INFO, "Listening on 0.0.0.0:%d", PORT_NUMBER);
+    logg(INFO, "All workers created");
 
     /* TODO(awiddersheim): Be a lot more intelligent of a master by reaping
      * and respawning any children that may have died before they should
