@@ -1,5 +1,7 @@
 #include "main.h"
 
+#define LOG_MAX 4096
+
 /* Used for identifying processes in logs */
 char *title;
 
@@ -13,15 +15,15 @@ static const char *level_names[] = {
 
 void vlogg(log_level_t log_level, const char *message, va_list args)
 {
-    char buffer[4096];
-    size_t result;
+    char buffer[LOG_MAX];
+    int result;
 
     if (log_level < LOG_LEVEL)
         return;
 
-    result = (size_t) snprintf(
+    result = snprintf(
         buffer,
-        sizeof(buffer),
+        LOG_MAX,
         "%s (%s)(%d): %s\n",
         level_names[log_level - 1],
         title,
@@ -30,7 +32,7 @@ void vlogg(log_level_t log_level, const char *message, va_list args)
     );
 
     /* NOTE(awiddersheim): Make sure string is newline delimited */
-    if (result >= sizeof(buffer))
+    if (result >= LOG_MAX)
         buffer[strlen(buffer) - 1] = '\n';
 
     vfprintf(stdout, buffer, args);
