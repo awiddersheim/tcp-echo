@@ -13,14 +13,14 @@ void gettimestamp(char *buffer)
     snprintf(
         buffer,
         TIMESTAMP_MAX,
-        "%d-%02d-%02d %02d:%02d:%02d.%03d",
+        "%d-%02d-%02d %02d:%02d:%02d.%03ld",
         tm.tm_year + 1900,
         tm.tm_mon + 1,
         tm.tm_mday,
         tm.tm_hour,
         tm.tm_min,
         tm.tm_sec,
-        tv.tv_usec / 1000
+        (long) tv.tv_usec / 1000
     );
 }
 

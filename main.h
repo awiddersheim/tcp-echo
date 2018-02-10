@@ -1,6 +1,8 @@
 #ifndef __MAIN_H_
 #define __MAIN_H_
 
+#include "config.h"
+
 #include <errno.h>
 #include <fcntl.h>
 #include <stdarg.h>
@@ -17,7 +19,6 @@
 #include <signal.h>
 #include <unistd.h>
 #include <uv.h>
-#include "config.h"
 #include "error.h"
 #include "log.h"
 

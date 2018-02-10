@@ -16,6 +16,7 @@ static const char *level_names[] = {
 void vlogg(log_level_t log_level, const char *message, va_list args)
 {
     char buffer[LOG_MAX];
+    char timebuffer[TIMESTAMP_MAX];
     char timestamp[TIMESTAMP_MAX];
     int result;
 
@@ -25,8 +26,8 @@ void vlogg(log_level_t log_level, const char *message, va_list args)
     timestamp[0] = '\0';
 
     #ifdef TIMESTAMPS
-    gettimestamp(timestamp);
-    snprintf(timestamp, TIMESTAMP_MAX, "%s - ", timestamp);
+    gettimestamp(timebuffer);
+    snprintf(timestamp, TIMESTAMP_MAX, "%s - ", timebuffer);
     #endif
 
     result = snprintf(
