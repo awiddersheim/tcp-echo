@@ -10,7 +10,7 @@ Just messing around with C, pthreads, SO_RESUSEPORT and CMake.
 
 # Running
 
-After building simply start the `./tcp-echo`.
+After building, run the server `src/tcp-echo`.
 
 # Testing
 
