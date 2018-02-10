@@ -13,14 +13,6 @@ typedef enum {
     FATAL = 5
 } log_level_t;
 
-static const char *level_names[] = {
-    "DEBUG",
-    "INFO",
-    "WARN",
-    "ERROR",
-    "FATAL"
-};
-
 void vlogg(log_level_t log_level, const char *message, va_list args);
 void logg(log_level_t log_level, const char *message, ...);
 void logge(log_level_t log_level, const char *message, ...);

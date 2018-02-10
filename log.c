@@ -3,6 +3,14 @@
 /* Used for identifying processes in logs */
 char *title;
 
+static const char *level_names[] = {
+    "DEBUG",
+    "INFO",
+    "WARN",
+    "ERROR",
+    "FATAL"
+};
+
 void vlogg(log_level_t log_level, const char *message, va_list args)
 {
     char buffer[4096];
