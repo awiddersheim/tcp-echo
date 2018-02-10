@@ -21,11 +21,8 @@
  */
 #define LOG_LEVEL INFO
 
-/* Define if strerror_r returns char *. */
+/* Define if strerror_r returns char * */
 #cmakedefine STRERROR_R_CHAR_P
-
-/* Define if pthread_(get|set)name_np() are available */
-#cmakedefine PTHREAD_NAMES
 
 /* Define if SET_NAME for prctl() is available */
 #cmakedefine PRCTL_NAMES
