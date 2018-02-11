@@ -144,8 +144,6 @@ int worker__process(struct worker worker)
     if ((result = uv_listen((uv_stream_t *) &server, CONNECTION_BACKLOG, on_connection)) < 0)
         logguv(FATAL, result, "Could not listen for connections on (%d)", PORT_NUMBER);
 
-    logg(INFO, "Listening on 0.0.0.0:%d", PORT_NUMBER);
-
     while (quit != 1)
     {
         if (sig_recv != 0) {
@@ -256,7 +254,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    logg(INFO, "All workers created");
+    logg(INFO, "Listening on 0.0.0.0:%d", PORT_NUMBER);
 
     /* TODO(awiddersheim): Be a lot more intelligent of a master by reaping
      * and respawning any children that may have died before they should
