@@ -1,4 +1,4 @@
-#include "main.h"
+#include "tcp-echo.h"
 
 volatile sig_atomic_t sig_recv;
 

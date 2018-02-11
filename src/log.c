@@ -1,4 +1,4 @@
-#include "main.h"
+#include "tcp-echo.h"
 
 /* Used for identifying processes in logs */
 char *title;

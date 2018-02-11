@@ -13,11 +13,6 @@ CHECK_C_SOURCE_COMPILES("
   int main() { char x = *strerror_r(0, &x, sizeof(x)); return 0; }
   " STRERROR_R_CHAR_P)
 
-configure_file(
-  ${PROJECT_SOURCE_DIR}/src/config.h.cmake
-  ${PROJECT_SOURCE_DIR}/src/config.h
-)
-
 set(CMAKE_C_FLAGS "-std=gnu89")
 
 if(CMAKE_C_COMPILER_ID MATCHES "GNU|.*Clang")

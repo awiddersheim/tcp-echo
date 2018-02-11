@@ -1,4 +1,4 @@
-#include "main.h"
+#include "tcp-echo.h"
 
 void gettimestamp(char *buffer)
 {

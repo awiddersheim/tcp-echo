@@ -1,7 +1,7 @@
 #ifndef __UTILS_H_
 #define __UTILS_H_
 
-#include "main.h"
+#include "tcp-echo.h"
 
 #define TIMESTAMP_MAX 32
 
