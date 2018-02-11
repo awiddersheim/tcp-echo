@@ -35,7 +35,7 @@ void vlogg(log_level_t log_level, const char *message, va_list args)
         timestamp,
         level_names[log_level - 1],
         title,
-        getpid(),
+        uv_os_getpid(),
         message
     );
 

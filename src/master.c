@@ -242,7 +242,7 @@ int main(int argc, char *argv[])
                 uv_run(&master_loop, UV_RUN_ONCE);
                 uv_loop_close(&master_loop);
 
-                update_worker_pid(&workers[i], getpid());
+                update_worker_pid(&workers[i], uv_os_getpid());
                 result = worker__process(workers[i]);
                 free(workers);
                 return result;
