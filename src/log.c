@@ -1,5 +1,7 @@
 #include "tcp-echo.h"
 
+#define LOG_MAX 4096
+
 /* Used for identifying processes in logs */
 char *title;
 
@@ -13,7 +15,7 @@ static const char *level_names[] = {
 
 void vlogg(log_level_t log_level, const char *message, va_list args)
 {
-    char buffer[4096];
+    char buffer[LOG_MAX];
     char timebuffer[TIMESTAMP_MAX];
     char timestamp[TIMESTAMP_MAX];
     int result;
@@ -30,7 +32,7 @@ void vlogg(log_level_t log_level, const char *message, va_list args)
 
     result = snprintf(
         buffer,
-        sizeof(buffer),
+        LOG_MAX,
         "%s[%s] (%s)(%d): %s\n",
         timestamp,
         level_names[log_level - 1],
@@ -40,7 +42,7 @@ void vlogg(log_level_t log_level, const char *message, va_list args)
     );
 
     /* NOTE(awiddersheim): Make sure string is newline delimited */
-    if (result >=0 && (size_t) result >= sizeof(buffer))
+    if (result >= LOG_MAX)
         buffer[strlen(buffer) - 1] = '\n';
 
     vfprintf(stdout, buffer, args);
@@ -61,7 +63,7 @@ void logg(log_level_t log_level, const char *message, ...)
 
 void logge(log_level_t log_level, const char *message, ...)
 {
-    char buffer[2048];
+    char buffer[LOG_MAX];
     char error_string[1024];
     int previous_errno = errno;
     va_list args;
@@ -70,7 +72,7 @@ void logge(log_level_t log_level, const char *message, ...)
 
     snprintf(
         buffer,
-        sizeof(buffer),
+        LOG_MAX,
         "%s errno (%d) msg (%s)",
         message,
         previous_errno,
@@ -84,12 +86,12 @@ void logge(log_level_t log_level, const char *message, ...)
 
 void logguv(log_level_t log_level, int error, const char *message, ...)
 {
-    char buffer[2048];
+    char buffer[LOG_MAX];
     va_list args;
 
     snprintf(
         buffer,
-        sizeof(buffer),
+        LOG_MAX,
         "%s errno (%d) msg (%s: %s)",
         message,
         error,
