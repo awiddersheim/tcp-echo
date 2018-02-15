@@ -16,7 +16,7 @@ CHECK_C_SOURCE_COMPILES("
 set(CMAKE_C_FLAGS "-std=gnu89")
 
 if(CMAKE_C_COMPILER_ID MATCHES "GNU|.*Clang")
-  foreach (_CCOPT -Wall -Wextra -Wunused -Wunreachable-code -Wpedantic)
+  foreach (_CCOPT -Wall -Wextra -Wunused -Wunreachable-code -Wpedantic -Wno-variadic-macros)
     CHECK_C_COMPILER_FLAG(${_CCOPT} OPT${_CCOPT})
     if(OPT${_CCOPT})
       set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${_CCOPT}")

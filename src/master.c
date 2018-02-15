@@ -29,7 +29,7 @@ void free_write_request(write_req_t *write_request)
 void on_close(uv_handle_t *handle)
 {
     if (handle->data)
-        logg(INFO, "Closing connection from (%s)", handle->data);
+        logg(INFO, "Closing connection from (%s)", (char *) handle->data);
 
     free(handle->data);
     free(handle);
@@ -40,7 +40,7 @@ void echo_write(uv_write_t *request, int status)
     write_req_t *write_request = (write_req_t *) request;
 
     if (status)
-        logguv(ERROR, status, "Could not write to (%s)", write_request->client->data);
+        logguv(ERROR, status, "Could not write to (%s)", (char *) write_request->client->data);
 
     free_write_request(write_request);
 }
@@ -63,7 +63,7 @@ void echo_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *buffer)
 
     if (nread < 0) {
         if (nread != UV_EOF)
-            logguv(ERROR, (int) nread, "Could not read from (%s)", client->data);
+            logguv(ERROR, (int) nread, "Could not read from (%s)", (char *) client->data);
 
         uv_close((uv_handle_t *) client, on_close);
     }
