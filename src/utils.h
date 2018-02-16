@@ -3,13 +3,11 @@
 
 #include "tcp-echo.h"
 
-#define TIMESTAMP_MAX 32
-
 void sock_setreuse_port(int sock, int reuse);
 int init_worker(struct worker *worker, int id);
 int update_worker_pid(struct worker *worker, int pid);
 char *xgetpeername(uv_tcp_t *handle);
-void gettimestamp(char *buffer);
+int gettimestamp(char *buffer, size_t size);
 
 void initproctitle (int argc, char **argv);
 void setproctitle (const char *prog, const char *txt);

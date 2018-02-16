@@ -1,6 +1,6 @@
 #include "tcp-echo.h"
 
-void gettimestamp(char *buffer)
+int gettimestamp(char *buffer, size_t size)
 {
     time_t now;
     struct tm tm;
@@ -10,9 +10,9 @@ void gettimestamp(char *buffer)
     gmtime_r(&now, &tm);
     gettimeofday(&tv, NULL);
 
-    snprintf(
+    return snprintf(
         buffer,
-        TIMESTAMP_MAX,
+        size,
         "%d-%02d-%02d %02d:%02d:%02d.%03ld",
         tm.tm_year + 1900,
         tm.tm_mon + 1,
