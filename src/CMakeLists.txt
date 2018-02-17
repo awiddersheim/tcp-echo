@@ -3,7 +3,7 @@ list(REMOVE_ITEM COMMON_SOURCES "master.c")
 
 configure_file(
   config.h.cmake
-  config.h
+  ${CMAKE_SOURCE_DIR}/src/config.h
 )
 
 add_executable(

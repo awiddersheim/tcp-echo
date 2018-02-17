@@ -27,5 +27,10 @@
  */
 #define TIMESTAMPS
 
+/* Time in seconds a connection is allowed to sit idle for
+ * before being considered dead and timing out.
+ */
+#define CONNECTION_TIMEOUT 10
+
 /* Define if strerror_r returns char * */
 #cmakedefine STRERROR_R_CHAR_P
