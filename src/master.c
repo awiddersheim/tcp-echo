@@ -27,6 +27,22 @@ void alloc_buffer(__attribute__((unused)) uv_handle_t *handle, size_t size, uv_b
     *buffer = uv_buf_init((char *) malloc(size), size);
 }
 
+conn_t *init_conn(uv_loop_t *loop)
+{
+    conn_t *conn;
+
+    conn = xmalloc(sizeof(conn_t));
+    memset(conn, 0x0, sizeof(conn_t));
+
+    uv_tcp_init(loop, &conn->client);
+    uv_timer_init(loop, &conn->timer);
+
+    conn->timeout = time(NULL);
+    conn->timer.data = conn;
+
+    return conn;
+}
+
 write_req_t *init_write_request(conn_t *conn, char *buffer, int size)
 {
     write_req_t *write_request;
@@ -112,7 +128,7 @@ void on_timer(uv_timer_t *timer)
 
     difference = difftime(time(NULL), conn->timeout);
 
-    logg(INFO, "Connection from (%s) has been idle for (%.0f) seconds", conn->peer, difference);
+    logg(DEBUG, "Connection from (%s) has been idle for (%.0f) seconds", conn->peer, difference);
 
     if (uv_is_closing((uv_handle_t *) conn))
         return;
@@ -136,14 +152,7 @@ void on_connection(uv_stream_t *server, int status)
         return;
     }
 
-    conn = xmalloc(sizeof(conn_t));
-    memset(conn, 0x0, sizeof(conn_t));
-
-    uv_tcp_init(&worker_loop, &conn->client);
-    uv_timer_init(&worker_loop, &conn->timer);
-
-    conn->timeout = time(NULL);
-    conn->timer.data = conn;
+    conn = init_conn(&worker_loop);
 
     if ((result = uv_accept(server, (uv_stream_t *) conn)) >= 0) {
         conn->peer = xgetpeername((uv_tcp_t *) conn);
