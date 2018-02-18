@@ -198,7 +198,7 @@ int worker__process(struct worker worker)
 
     uv_tcp_init_ex(&worker_loop, &server, AF_INET);
 
-    uv_fileno((uv_handle_t *)&server, &fd);
+    uv_fileno((uv_handle_t *) &server, &fd);
     sock_setreuse_port(fd, 1);
 
     if ((result = uv_tcp_nodelay(&server, 1)) < 0)
