@@ -212,6 +212,9 @@ int worker__process(struct worker worker)
     if ((result = uv_tcp_nodelay(&server, 1)) < 0)
         logguv(FATAL, result, "Could not set nodelay on socket");
 
+    if ((result = uv_tcp_keepalive(&server, 1, 5)) < 0)
+        logguv(FATAL, result, "Could not set keepalive on socket");
+
     uv_ip4_addr("0.0.0.0", PORT_NUMBER, &addr);
 
     if ((result = uv_tcp_bind(&server, (const struct sockaddr *) &addr, 0)) < 0)
