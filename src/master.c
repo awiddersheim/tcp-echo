@@ -174,6 +174,7 @@ void on_stale_timer(__attribute__((unused)) uv_timer_t *timer)
 
 void on_connection(uv_stream_t *server, int status)
 {
+    int fd;
     int result;
     conn_t *conn;
 
@@ -188,6 +189,9 @@ void on_connection(uv_stream_t *server, int status)
         conn->peer = xgetpeername((uv_tcp_t *) conn);
 
         logg(INFO, "Handling connection from (%s)", conn->peer);
+
+        uv_fileno((uv_handle_t *) conn, &fd);
+        sock_set_linger(fd, 1, LINGER_TIMEOUT);
 
         uv_read_start((uv_stream_t *) conn, alloc_buffer, echo_read);
     } else {
@@ -238,7 +242,6 @@ int worker__process(struct worker worker)
 
     uv_fileno((uv_handle_t *) &server, &fd);
     sock_setreuse_port(fd, 1);
-    sock_set_linger(fd, 1, LINGER_TIMEOUT);
 
     if ((result = uv_tcp_nodelay(&server, 1)) < 0)
         logguv(FATAL, result, "Could not set nodelay on socket");

@@ -36,7 +36,7 @@
 #define LINGER_TIMEOUT 10
 
 /* Send reset packets to idle clients */
-#define SEND_RESET
+#undef SEND_RESET
 
 /* Define if strerror_r returns char* */
 #cmakedefine STRERROR_R_CHAR_P
