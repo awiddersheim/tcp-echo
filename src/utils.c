@@ -38,7 +38,15 @@ void sock_set_linger(int sock, int enable, int timeout)
     linger.l_linger = timeout;
 
     if (setsockopt(sock, SOL_SOCKET, SO_LINGER, &linger, sizeof(linger)) == -1)
-        logge(FATAL, "Could not disable linger");
+        logge(FATAL, "Could not set SO_LINGER");
+}
+
+void sock_set_tcp_linger(int sock, int timeout)
+{
+    #ifdef TCP_LINGER2
+    if (setsockopt(sock, IPPROTO_TCP, TCP_LINGER2, &timeout, sizeof(timeout)) == -1)
+        logge(FATAL, "Could not set TCP_LINGER2");
+    #endif
 }
 
 int init_worker(struct worker *worker, int id)

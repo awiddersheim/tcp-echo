@@ -5,6 +5,7 @@
 
 void sock_setreuse_port(int sock, int reuse);
 void sock_set_linger(int sock, int enable, int timeout);
+void sock_set_tcp_linger(int sock, int timeout);
 int init_worker(struct worker *worker, int id);
 int update_worker_pid(struct worker *worker, int pid);
 char *xgetpeername(uv_tcp_t *handle);

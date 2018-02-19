@@ -192,6 +192,7 @@ void on_connection(uv_stream_t *server, int status)
 
         uv_fileno((uv_handle_t *) conn, &fd);
         sock_set_linger(fd, 1, LINGER_TIMEOUT);
+        sock_set_tcp_linger(fd, LINGER_TIMEOUT);
 
         uv_read_start((uv_stream_t *) conn, alloc_buffer, echo_read);
     } else {
