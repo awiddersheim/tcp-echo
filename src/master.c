@@ -6,7 +6,6 @@ uv_loop_t worker_loop;
 
 typedef struct {
     uv_tcp_t client;
-    uv_timer_t timer;
     char *peer;
     time_t timeout;
 } conn_t;
@@ -16,6 +15,11 @@ typedef struct {
     uv_buf_t buffer;
     conn_t *conn;
 } write_req_t;
+
+typedef enum {
+    SERVER = 1,
+    CLIENT = 2
+} tcp_type_t;
 
 void signal_recv(__attribute__((unused)) uv_signal_t *handle, int signal)
 {
@@ -27,6 +31,16 @@ void alloc_buffer(__attribute__((unused)) uv_handle_t *handle, size_t size, uv_b
     *buffer = uv_buf_init((char *) malloc(size), size);
 }
 
+tcp_type_t *init_tcp_type(tcp_type_t type)
+{
+    tcp_type_t *type_ptr;
+
+    type_ptr = xmalloc(sizeof(tcp_type_t));
+    *type_ptr = type;
+
+    return type_ptr;
+}
+
 conn_t *init_conn(uv_loop_t *loop)
 {
     conn_t *conn;
@@ -35,10 +49,10 @@ conn_t *init_conn(uv_loop_t *loop)
     memset(conn, 0x0, sizeof(conn_t));
 
     uv_tcp_init(loop, &conn->client);
-    uv_timer_init(loop, &conn->timer);
 
     conn->timeout = time(NULL);
-    conn->timer.data = conn;
+
+    conn->client.data = init_tcp_type(CLIENT);
 
     return conn;
 }
@@ -60,8 +74,7 @@ void on_conn_close(uv_handle_t *handle)
 {
     conn_t *conn = (conn_t *) handle;
 
-    uv_close((uv_handle_t *) &conn->timer, NULL);
-
+    free(conn->client.data);
     free(conn->peer);
     free(conn);
 }
@@ -126,27 +139,37 @@ void echo_read(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buffer)
     free(buffer->base);
 }
 
-void on_timer(uv_timer_t *timer)
+void on_stale_walk(uv_handle_t *handle, __attribute__((unused)) void *arg)
 {
-    conn_t *conn = (conn_t *) timer->data;
+    conn_t *conn;
     double difference;
     const char *timeout = "Closing connection due to inactivity\n";
     write_req_t *write_request;
 
-    difference = difftime(time(NULL), conn->timeout);
-
-    logg(DEBUG, "Connection from (%s) has been idle for (%.0f) seconds", conn->peer, difference);
-
-    if (uv_is_closing((uv_handle_t *) conn))
+    if (uv_is_closing(handle))
         return;
 
-    if (difference > CONNECTION_TIMEOUT) {
-        logg(INFO, "Connection from (%s) has timed out", conn->peer);
+    if (uv_handle_get_type(handle) == UV_TCP && handle->data != NULL
+            && *(tcp_type_t *) handle->data == CLIENT) {
+        conn = (conn_t *) handle;
 
-        write_request = init_write_request(conn, (char *) timeout, strlen(timeout));
+        difference = difftime(time(NULL), conn->timeout);
 
-        uv_write((uv_write_t *) write_request, (uv_stream_t *) conn, &write_request->buffer, 1, conn_write_timeout);
+        logg(DEBUG, "Connection from (%s) has been idle for (%.0f) seconds", conn->peer, difference);
+
+        if (difference > CONNECTION_TIMEOUT) {
+            logg(INFO, "Connection from (%s) has timed out", conn->peer);
+
+            write_request = init_write_request(conn, (char *) timeout, strlen(timeout));
+
+            uv_write((uv_write_t *) write_request, (uv_stream_t *) conn, &write_request->buffer, 1, conn_write_timeout);
+        }
     }
+}
+
+void on_stale_timer(__attribute__((unused)) uv_timer_t *timer)
+{
+    uv_walk(&worker_loop, on_stale_walk, NULL);
 }
 
 void on_connection(uv_stream_t *server, int status)
@@ -167,8 +190,6 @@ void on_connection(uv_stream_t *server, int status)
         logg(INFO, "Handling connection from (%s)", conn->peer);
 
         uv_read_start((uv_stream_t *) conn, alloc_buffer, echo_read);
-
-        uv_timer_start(&conn->timer, on_timer, CONNECTION_TIMEOUT, CONNECTION_TIMEOUT);
     } else {
         logguv(ERROR, result, "Could not accept new connection");
 
@@ -186,6 +207,7 @@ int worker__process(struct worker worker)
     uv_signal_t sigterm;
     uv_signal_t sigint;
     uv_tcp_t server;
+    uv_timer_t stale_timer;
 
     setproctitle("tcp-echo", "worker");
     title = worker.title;
@@ -204,6 +226,15 @@ int worker__process(struct worker worker)
     uv_signal_start(&sigint, signal_recv, SIGINT);
 
     uv_tcp_init_ex(&worker_loop, &server, AF_INET);
+    server.data = init_tcp_type(SERVER);
+
+    uv_timer_init(&worker_loop, &stale_timer);
+    uv_timer_start(
+        &stale_timer,
+        on_stale_timer,
+        CONNECTION_TIMEOUT * 1000,
+        CONNECTION_TIMEOUT * 1000
+    );
 
     uv_fileno((uv_handle_t *) &server, &fd);
     sock_setreuse_port(fd, 1);
