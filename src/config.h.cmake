@@ -32,5 +32,11 @@
  */
 #define CONNECTION_TIMEOUT 10
 
-/* Define if strerror_r returns char * */
+/* Set linger timeout after closing client connections */
+#define LINGER_TIMEOUT 10
+
+/* Send reset packets to idle clients */
+#define SEND_RESET
+
+/* Define if strerror_r returns char* */
 #cmakedefine STRERROR_R_CHAR_P

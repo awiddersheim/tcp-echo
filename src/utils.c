@@ -30,6 +30,17 @@ void sock_setreuse_port(int sock, int reuse)
         logge(FATAL, "Could not set port reuse");
 }
 
+void sock_set_linger(int sock, int enable, int timeout)
+{
+    struct linger linger;
+
+    linger.l_onoff = enable;
+    linger.l_linger = timeout;
+
+    if (setsockopt(sock, SOL_SOCKET, SO_LINGER, &linger, sizeof(linger)) == -1)
+        logge(FATAL, "Could not disable linger");
+}
+
 int init_worker(struct worker *worker, int id)
 {
     int result;

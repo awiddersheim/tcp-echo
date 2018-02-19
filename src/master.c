@@ -79,12 +79,19 @@ void echo_write(uv_write_t *request, int status)
 
 void conn_write_timeout(uv_write_t *request, int status)
 {
+    int fd;
     write_req_t *write_request = (write_req_t *) request;
 
     if (status)
         logguv(ERROR, status, "Could not write to (%s)", write_request->conn->peer);
 
     logg(INFO, "Closing connection from (%s)", write_request->conn->peer);
+
+    uv_fileno((uv_handle_t *) write_request->conn, &fd);
+
+    #ifdef SEND_RESET
+    sock_set_linger(fd, 1, 0);
+    #endif
 
     uv_close((uv_handle_t *) write_request->conn, on_conn_close);
 
@@ -161,7 +168,7 @@ void on_connection(uv_stream_t *server, int status)
 
         uv_read_start((uv_stream_t *) conn, alloc_buffer, echo_read);
 
-        uv_timer_start(&conn->timer, on_timer, 100, 100);
+        uv_timer_start(&conn->timer, on_timer, CONNECTION_TIMEOUT, CONNECTION_TIMEOUT);
     } else {
         logguv(ERROR, result, "Could not accept new connection");
 
@@ -200,6 +207,7 @@ int worker__process(struct worker worker)
 
     uv_fileno((uv_handle_t *) &server, &fd);
     sock_setreuse_port(fd, 1);
+    sock_set_linger(fd, 1, LINGER_TIMEOUT);
 
     if ((result = uv_tcp_nodelay(&server, 1)) < 0)
         logguv(FATAL, result, "Could not set nodelay on socket");
