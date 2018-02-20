@@ -22,25 +22,15 @@
 #include "error.h"
 #include "log.h"
 
-#ifdef PRCTL_NAMES
-#include <sys/prctl.h>
-#endif
+typedef enum {
+    RUNNING,
+    STOPPING,
+    KILLED
+} process_state_t;
 
-struct conn {
-    int fd;
-    struct sockaddr_in addr;
-    sem_t *mutex;
-    unsigned int id;
-};
-
-struct worker {
-    unsigned int id;
-    unsigned int pid;
-    int status;
-    char title[256];
-};
-
-extern uv_loop_t *loop;
+extern int is_worker;
+extern uv_loop_t loop;
+extern process_state_t process_state;
 
 #include "utils.h"
 

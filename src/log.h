@@ -3,7 +3,9 @@
 
 #include "tcp-echo.h"
 
-char *title;
+#define MAX_TITLE 256
+
+char title[MAX_TITLE];
 
 typedef enum {
     DEBUG = 1,

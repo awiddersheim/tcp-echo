@@ -6,15 +6,16 @@
 void sock_setreuse_port(int sock, int reuse);
 void sock_set_linger(int sock, int enable, int timeout);
 void sock_set_tcp_linger(int sock, int timeout);
-int init_worker(struct worker *worker, int id);
-int update_worker_pid(struct worker *worker, int pid);
 char *xgetpeername(uv_tcp_t *handle);
 int gettimestamp(char *buffer, size_t size);
+int os_getenv(const char *name, char **var);
+void signal_recv(uv_signal_t *handle, int signal);
 
 void initproctitle (int argc, char **argv);
 void setproctitle (const char *prog, const char *txt);
 
 #define xmalloc(x) __xmalloc(x, __FILE__, __LINE__)
+#define xrealloc(x, y) __realloc(x, y, __FILE__, __LINE__)
 
 static __inline void *__xmalloc(size_t size, const char *file, int line)
 {
@@ -22,6 +23,16 @@ static __inline void *__xmalloc(size_t size, const char *file, int line)
 
     if (ptr == NULL)
         logge(FATAL, "Could not allocate memory in (%s) on line (%d)", file, line);
+
+    return ptr;
+}
+
+static __inline void *__realloc(void *oldptr, size_t size, const char *file, int line)
+{
+    void *ptr = realloc(oldptr, size);
+
+    if (ptr == NULL)
+        logge(FATAL, "Could not re-allocate memory in (%s) on line (%d)", file, line);
 
     return ptr;
 }

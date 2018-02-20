@@ -1,5 +1,53 @@
 #include "tcp-echo.h"
 
+int os_getenv(const char *name, char **var)
+{
+    int result;
+    char *envptr;
+    size_t size = 1;
+
+    envptr = xmalloc(size);
+
+    result = uv_os_getenv(name, envptr, &size);
+
+    if (result == UV_ENOBUFS) {
+        envptr = xrealloc(envptr, size);
+
+        result = uv_os_getenv(name, envptr, &size);
+    }
+
+    *var = envptr;
+
+    return result;
+}
+
+void signal_recv(__attribute__((unused)) uv_signal_t *handle, int signal)
+{
+    logg(INFO, "Processing signal (%s)", strsignal(signal));
+
+    switch (signal) {
+        case SIGINT:
+            if (is_worker)
+                break;
+        case SIGQUIT:
+        case SIGTERM:
+            uv_stop(&loop);
+
+            switch (process_state) {
+                case RUNNING:
+                    process_state = STOPPING;
+                    break;
+                default:
+                    process_state = KILLED;
+                    break;
+            }
+
+            break;
+        default:
+            break;
+    }
+}
+
 int gettimestamp(char *buffer, size_t size)
 {
     time_t now;
@@ -41,35 +89,12 @@ void sock_set_linger(int sock, int enable, int timeout)
         logge(FATAL, "Could not set SO_LINGER");
 }
 
-void sock_set_tcp_linger(int sock, int timeout)
+void sock_set_tcp_linger(__attribute__((unused)) int sock, __attribute__((unused)) int timeout)
 {
     #ifdef TCP_LINGER2
     if (setsockopt(sock, IPPROTO_TCP, TCP_LINGER2, &timeout, sizeof(timeout)) == -1)
         logge(FATAL, "Could not set TCP_LINGER2");
     #endif
-}
-
-int init_worker(struct worker *worker, int id)
-{
-    int result;
-
-    worker->id = id;
-    worker->status = -1;
-    worker->pid = -1;
-
-    result = snprintf(worker->title, sizeof(worker->title), "worker-%d", id);
-
-    if (result >= 0 && (size_t) result >= sizeof(worker->title))
-        logg(WARN, "Could not write entire worker title (worker-%d)", id);
-
-    return 0;
-}
-
-int update_worker_pid(struct worker *worker, int pid)
-{
-    worker->pid = pid;
-
-    return 0;
 }
 
 char *xgetpeername(uv_tcp_t *handle)
