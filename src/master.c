@@ -101,7 +101,6 @@ void conn_write_timeout(uv_write_t *request, int status)
     logg(INFO, "Closing connection from (%s)", write_request->conn->peer);
 
     uv_fileno((uv_handle_t *) write_request->conn, &fd);
-
     #ifdef SEND_RESET
     sock_set_linger(fd, 1, 0);
     #endif
@@ -202,12 +201,41 @@ void on_connection(uv_stream_t *server, int status)
     }
 }
 
-int worker__process(struct worker worker)
+void init_server(uv_loop_t *loop, uv_tcp_t *server)
 {
-    int quit = 0;
     int fd;
     int result;
     struct sockaddr_in addr;
+
+    uv_tcp_init_ex(loop, server, AF_INET);
+    server->data = init_tcp_type(SERVER);
+
+    uv_fileno((uv_handle_t *) server, &fd);
+    sock_setreuse_port(fd, 1);
+
+    #ifdef ENABLE_NODELAY
+    if ((result = uv_tcp_nodelay(server, 1)) < 0)
+        logguv(FATAL, result, "Could not set nodelay on socket");
+    #endif
+
+    #ifdef ENABLE_KEEPALIVE
+    if ((result = uv_tcp_keepalive(server, 1, KEEPALIVE_INTERVAL)) < 0)
+        logguv(FATAL, result, "Could not set keepalive on socket");
+    #endif
+
+    uv_ip4_addr("0.0.0.0", PORT_NUMBER, &addr);
+
+    if ((result = uv_tcp_bind(server, (const struct sockaddr *) &addr, 0)) < 0)
+        logguv(FATAL, result, "Could not bind to port (%d)", PORT_NUMBER);
+
+    if ((result = uv_listen((uv_stream_t *) server, CONNECTION_BACKLOG, on_connection)) < 0)
+        logguv(FATAL, result, "Could not listen for connections on (%d)", PORT_NUMBER);
+}
+
+int worker__process(struct worker worker)
+{
+    int quit = 0;
+    int result;
     uv_signal_t sigquit;
     uv_signal_t sigterm;
     uv_signal_t sigint;
@@ -230,9 +258,6 @@ int worker__process(struct worker worker)
     uv_signal_start(&sigterm, signal_recv, SIGTERM);
     uv_signal_start(&sigint, signal_recv, SIGINT);
 
-    uv_tcp_init_ex(&worker_loop, &server, AF_INET);
-    server.data = init_tcp_type(SERVER);
-
     uv_timer_init(&worker_loop, &stale_timer);
     uv_timer_start(
         &stale_timer,
@@ -241,22 +266,7 @@ int worker__process(struct worker worker)
         CONNECTION_TIMEOUT * 1000
     );
 
-    uv_fileno((uv_handle_t *) &server, &fd);
-    sock_setreuse_port(fd, 1);
-
-    if ((result = uv_tcp_nodelay(&server, 1)) < 0)
-        logguv(FATAL, result, "Could not set nodelay on socket");
-
-    if ((result = uv_tcp_keepalive(&server, 1, 5)) < 0)
-        logguv(FATAL, result, "Could not set keepalive on socket");
-
-    uv_ip4_addr("0.0.0.0", PORT_NUMBER, &addr);
-
-    if ((result = uv_tcp_bind(&server, (const struct sockaddr *) &addr, 0)) < 0)
-        logguv(FATAL, result, "Could not bind to port (%d)", PORT_NUMBER);
-
-    if ((result = uv_listen((uv_stream_t *) &server, CONNECTION_BACKLOG, on_connection)) < 0)
-        logguv(FATAL, result, "Could not listen for connections on (%d)", PORT_NUMBER);
+    init_server(&worker_loop, &server);
 
     while (quit != 1)
     {

@@ -32,11 +32,20 @@
  */
 #define CONNECTION_TIMEOUT 10
 
-/* Set linger timeout after closing client connections */
+/* The linger timeout after closing client connections */
 #define LINGER_TIMEOUT 10
 
 /* Send reset packets to idle clients */
 #undef SEND_RESET
+
+/* Enable SO_KEEPALIVE on client connections */
+#undef ENABLE_KEEPALIVE
+
+/* The delay before sending keepalives */
+#define KEEPALIVE_DELAY 5
+
+/* Enable TCP_NODELAY on client connections */
+#define ENABLE_NODELAY
 
 /* Define if strerror_r returns char* */
 #cmakedefine STRERROR_R_CHAR_P
