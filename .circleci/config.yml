@@ -1,0 +1,53 @@
+version: 2
+jobs:
+  build_centos:
+    docker:
+      - image: centos:7
+    steps:
+      - checkout
+      - run:
+          command: |
+            yum -y install \
+              automake \
+              cmake \
+              gcc \
+              gcc-c++ \
+              git \
+              libtool \
+              make
+      - run: mkdir build
+      - run:
+          command: cmake ..
+          working_directory: build
+      - run:
+          command: make
+          working_directory: build
+  build_ubuntu:
+    docker:
+      - image: ubuntu:16.04
+    steps:
+      - checkout
+      - run: apt-get update
+      - run:
+          command: |
+            apt-get -y --force-yes install \
+              automake \
+              cmake \
+              gcc \
+              g++ \
+              git \
+              libtool \
+              make
+      - run: mkdir build
+      - run:
+          command: cmake ..
+          working_directory: build
+      - run:
+          command: make
+          working_directory: build
+workflows:
+  version: 2
+  build:
+    jobs:
+      - build_centos
+      - build_ubuntu
