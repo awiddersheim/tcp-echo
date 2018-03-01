@@ -1,6 +1,8 @@
 # About
 
-Just messing around with C, pthreads, SO_RESUSEPORT and CMake.
+[![CircleCI](https://circleci.com/gh/awiddersheim/tcp-echo.svg?style=svg)](https://circleci.com/gh/awiddersheim/tcp-echo)
+
+Just messing around with C, libuv, SO_RESUSEPORT and CMake.
 
 # Building
 
@@ -10,7 +12,7 @@ Just messing around with C, pthreads, SO_RESUSEPORT and CMake.
 
 # Running
 
-After building, run the server `./tcp-echo`.
+After building, run the server `./tcp-echo-masater`.
 
 # Testing
 
