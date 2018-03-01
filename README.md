@@ -2,7 +2,15 @@
 
 [![CircleCI](https://circleci.com/gh/awiddersheim/tcp-echo.svg?style=svg)](https://circleci.com/gh/awiddersheim/tcp-echo)
 
-Just messing around with C, libuv, SO_RESUSEPORT and CMake.
+Started as a project to mess around with [C][c_lang],
+[pthreads][pthreads], [SO_REUSEPORT][reuseport] and [CMake][cmake]. That
+is largely still the case but have since transitioned away from pthreads
+to [libuv][libuv].  Can look through version control history to see
+initial pthread work.
+
+Also, this has sort of become a nano version of [NGINX's][nginx]
+[architecture][nginx-arch] with a master processes controlling multiple
+workers handling incoming connections.
 
 # Building
 
@@ -25,3 +33,11 @@ foo
 bar
 bar
 ```
+
+[c_lang]: https://en.wikipedia.org/wiki/C_(programming_language)
+[cmake]: https://cmake.org/
+[libuv]: https://github.com/libuv/libuv
+[nginx]: https://www.nginx.com/
+[nginx-arch]: https://www.nginx.com/blog/inside-nginx-how-we-designed-for-performance-scale/
+[pthreads]: https://en.wikipedia.org/wiki/POSIX_Threads
+[reuseport]: https://lwn.net/Articles/542629/
