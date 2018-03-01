@@ -8,7 +8,7 @@ is largely still the case but have since transitioned away from pthreads
 to [libuv][libuv].  Can look through version control history to see
 initial pthread work.
 
-Also, this has sort of become a nano version of [NGINX's][nginx]
+This has sort of evolved to become a nano version of [NGINX's][nginx]
 [architecture][nginx-arch] with a master processes controlling multiple
 workers handling incoming connections which are [distributed by the
 kernel][nginx-reuseport] using `SO_REUSEPORT`.
