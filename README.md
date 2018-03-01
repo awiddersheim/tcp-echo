@@ -10,7 +10,8 @@ initial pthread work.
 
 Also, this has sort of become a nano version of [NGINX's][nginx]
 [architecture][nginx-arch] with a master processes controlling multiple
-workers handling incoming connections.
+workers handling incoming connections which are [distributed by the
+kernel][nginx-reuseport] using `SO_REUSEPORT`.
 
 # Building
 
@@ -39,5 +40,6 @@ bar
 [libuv]: https://github.com/libuv/libuv
 [nginx]: https://www.nginx.com/
 [nginx-arch]: https://www.nginx.com/blog/inside-nginx-how-we-designed-for-performance-scale/
+[nginx-reuseport]: https://www.nginx.com/blog/socket-sharding-nginx-release-1-9-1/
 [pthreads]: https://en.wikipedia.org/wiki/POSIX_Threads
 [reuseport]: https://lwn.net/Articles/542629/
