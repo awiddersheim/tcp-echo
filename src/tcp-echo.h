@@ -33,10 +33,6 @@ typedef struct {
     int is_worker;
 } te_process_t;
 
-extern int is_worker;
-extern uv_loop_t loop;
-extern te_process_state_t process_state;
-
 #include "utils.h"
 
 #endif

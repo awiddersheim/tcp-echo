@@ -1,7 +1,5 @@
 #include "tcp-echo.h"
 
-uv_loop_t te_loop;
-
 typedef struct {
     uv_tcp_t client;
     char *peer;
@@ -260,6 +258,7 @@ int main(int argc, char *argv[])
 {
     int result;
     te_process_t process = {RUNNING, 1};
+    uv_loop_t loop;
     uv_signal_t sigquit;
     uv_signal_t sigterm;
     uv_signal_t sigint;
@@ -272,19 +271,19 @@ int main(int argc, char *argv[])
 
     te_log(INFO, "Worker created");
 
-    if ((result = uv_loop_init(&te_loop)) < 0)
+    if ((result = uv_loop_init(&loop)) < 0)
         te_log_uv(FATAL, result, "Could not create worker loop");
 
-    te_loop.data = &process;
+    loop.data = &process;
 
-    uv_signal_init(&te_loop, &sigquit);
-    uv_signal_init(&te_loop, &sigterm);
-    uv_signal_init(&te_loop, &sigint);
+    uv_signal_init(&loop, &sigquit);
+    uv_signal_init(&loop, &sigterm);
+    uv_signal_init(&loop, &sigint);
     uv_signal_start(&sigquit, te_signal_recv, SIGQUIT);
     uv_signal_start(&sigterm, te_signal_recv, SIGTERM);
     uv_signal_start(&sigint, te_signal_recv, SIGINT);
 
-    uv_timer_init(&te_loop, &stale_timer);
+    uv_timer_init(&loop, &stale_timer);
     uv_timer_start(
         &stale_timer,
         te_on_stale_timer,
@@ -292,9 +291,9 @@ int main(int argc, char *argv[])
         CONNECTION_TIMEOUT * 1000
     );
 
-    te_init_server(&te_loop, &server);
+    te_init_server(&loop, &server);
 
-    uv_run(&te_loop, UV_RUN_DEFAULT);
+    uv_run(&loop, UV_RUN_DEFAULT);
 
     te_log(INFO, "Worker shutting down");
 

@@ -1,7 +1,5 @@
 #include "tcp-echo.h"
 
-uv_loop_t te_loop;
-
 extern char **environ;
 
 typedef struct worker {
@@ -180,6 +178,7 @@ int main(int argc, char *argv[])
     uv_cpu_info_t *cpu_info;
     int cpu_count;
     te_process_t process = {RUNNING, 0};
+    uv_loop_t loop;
     uv_signal_t sigquit;
     uv_signal_t sigterm;
     uv_signal_t sigint;
@@ -188,14 +187,14 @@ int main(int argc, char *argv[])
     te_setproctitle("tcp-echo", "master");
     snprintf(title, sizeof(title), "master");
 
-    if ((result = uv_loop_init(&te_loop)) < 0)
+    if ((result = uv_loop_init(&loop)) < 0)
         te_log_uv(FATAL, result, "Could not create master loop");
 
-    te_loop.data = &process;
+    loop.data = &process;
 
-    uv_signal_init(&te_loop, &sigquit);
-    uv_signal_init(&te_loop, &sigterm);
-    uv_signal_init(&te_loop, &sigint);
+    uv_signal_init(&loop, &sigquit);
+    uv_signal_init(&loop, &sigterm);
+    uv_signal_init(&loop, &sigint);
     uv_signal_start(&sigquit, te_signal_recv, SIGQUIT);
     uv_signal_start(&sigterm, te_signal_recv, SIGTERM);
     uv_signal_start(&sigint, te_signal_recv, SIGINT);
@@ -219,7 +218,7 @@ int main(int argc, char *argv[])
     for (i = 0; i < cpu_count;) {
         te_init_worker(&workers[i], i + 1);
 
-        if (te_spawn_worker(&te_loop, &workers[i]))
+        if (te_spawn_worker(&loop, &workers[i]))
             continue;
 
         i++;
@@ -227,7 +226,7 @@ int main(int argc, char *argv[])
 
     te_log(INFO, "Listening on 0.0.0.0:%d", PORT_NUMBER);
 
-    uv_run(&te_loop, UV_RUN_DEFAULT);
+    uv_run(&loop, UV_RUN_DEFAULT);
 
     te_log(INFO, "Master shutting down");
 
@@ -238,7 +237,7 @@ int main(int argc, char *argv[])
 
             uv_kill(workers[i].pid, SIGTERM);
 
-            uv_run(&te_loop, UV_RUN_ONCE);
+            uv_run(&loop, UV_RUN_ONCE);
 
             if (workers[i].alive)
                 continue;
