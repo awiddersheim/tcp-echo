@@ -26,11 +26,11 @@ typedef enum {
     RUNNING,
     STOPPING,
     KILLED
-} process_state_t;
+} te_process_state_t;
 
 extern int is_worker;
 extern uv_loop_t loop;
-extern process_state_t process_state;
+extern te_process_state_t process_state;
 
 #include "utils.h"
 

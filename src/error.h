@@ -3,6 +3,6 @@
 
 #include "tcp-echo.h"
 
-void xstrerror(int err, char *buffer, size_t size);
+void te_strerror(int err, char *buffer, size_t size);
 
 #endif

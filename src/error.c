@@ -1,6 +1,6 @@
 #include "tcp-echo.h"
 
-void xstrerror(int err, char *buffer, size_t size) {
+void te_strerror(int err, char *buffer, size_t size) {
     int result = 0;
 
     #ifdef STRERROR_R_CHAR_P

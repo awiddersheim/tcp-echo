@@ -3,41 +3,41 @@
 
 #include "tcp-echo.h"
 
-void sock_setreuse_port(int sock, int reuse);
-void sock_set_linger(int sock, int enable, int timeout);
-void sock_set_tcp_linger(int sock, int timeout);
-char *xgetpeername(uv_tcp_t *handle);
-int gettimestamp(char *buffer, size_t size);
-int os_getenv(const char *name, char **var);
-void signal_recv(uv_signal_t *handle, int signal);
+void te_sock_setreuse_port(int sock, int reuse);
+void te_sock_set_linger(int sock, int enable, int timeout);
+void te_sock_set_tcp_linger(int sock, int timeout);
+char *te_getpeername(uv_tcp_t *handle);
+int te_gettimestamp(char *buffer, size_t size);
+int te_os_getenv(const char *name, char **var);
+void te_signal_recv(uv_signal_t *handle, int signal);
 
-void initproctitle (int argc, char **argv);
-void setproctitle (const char *prog, const char *txt);
+void te_initproctitle (int argc, char **argv);
+void te_setproctitle (const char *prog, const char *txt);
 
-#define xmalloc(x) __xmalloc(x, __FILE__, __LINE__)
-#define xrealloc(x, y) __realloc(x, y, __FILE__, __LINE__)
+#define te_malloc(x) te__malloc(x, __FILE__, __LINE__)
+#define te_realloc(x, y) te__realloc(x, y, __FILE__, __LINE__)
 
-static __inline void *__xmalloc(size_t size, const char *file, int line)
+static __inline void *te__malloc(size_t size, const char *file, int line)
 {
     void *ptr = malloc(size);
 
     if (ptr == NULL)
-        logge(FATAL, "Could not allocate memory in (%s) on line (%d)", file, line);
+        te_log_errno(FATAL, "Could not allocate memory in (%s) on line (%d)", file, line);
 
     return ptr;
 }
 
-static __inline void *__realloc(void *oldptr, size_t size, const char *file, int line)
+static __inline void *te__realloc(void *oldptr, size_t size, const char *file, int line)
 {
     void *ptr = realloc(oldptr, size);
 
     if (ptr == NULL)
-        logge(FATAL, "Could not re-allocate memory in (%s) on line (%d)", file, line);
+        te_log_errno(FATAL, "Could not re-allocate memory in (%s) on line (%d)", file, line);
 
     return ptr;
 }
 
-static __inline void xvasprintf(char **strp, const char *format, va_list args)
+static __inline void te_vasprintf(char **strp, const char *format, va_list args)
 {
     int result;
     va_list args_tmp;
@@ -48,20 +48,20 @@ static __inline void xvasprintf(char **strp, const char *format, va_list args)
     va_end(args_tmp);
 
     /* Allocate and fill string */
-    *strp = xmalloc(result);
+    *strp = te_malloc(result);
 
     result = vsnprintf(*strp, result, format, args);
 
     if (result < 0)
-        logg(FATAL, "Could not create string (%d)", result);
+        te_log(FATAL, "Could not create string (%d)", result);
 }
 
-static __inline void xasprintf(char **strp, const char *format, ...)
+static __inline void te_asprintf(char **strp, const char *format, ...)
 {
     va_list args;
 
     va_start(args, format);
-    xvasprintf(strp, format, args);
+    te_vasprintf(strp, format, args);
     va_end(args);
 }
 
