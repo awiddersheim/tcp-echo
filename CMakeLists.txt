@@ -15,11 +15,34 @@ CHECK_C_SOURCE_COMPILES("
 
 set(CMAKE_C_FLAGS "-std=gnu89")
 
+list(
+  APPEND
+  COMPILER_FLAGS
+  -Wall
+  -Wextra
+  -Wunused
+  -Wunreachable-code
+  -Wpedantic
+  -Wno-variadic-macros
+)
+
+if(DEFINED ENV{CI})
+  list(
+    APPEND
+    COMPILER_FLAGS
+    -Werror
+    -pedantic-errors
+  )
+endif()
+
 if(CMAKE_C_COMPILER_ID MATCHES "GNU|.*Clang")
-  foreach (_CCOPT -Wall -Wextra -Wunused -Wunreachable-code -Wpedantic -Wno-variadic-macros)
-    CHECK_C_COMPILER_FLAG(${_CCOPT} OPT${_CCOPT})
-    if(OPT${_CCOPT})
-      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${_CCOPT}")
+  foreach (COMPILER_FLAG IN LISTS COMPILER_FLAGS)
+    string(REPLACE "-" "" CLEAN_COMPILER_FLAG ${COMPILER_FLAG})
+
+    CHECK_C_COMPILER_FLAG(${COMPILER_FLAG} FLAG_${CLEAN_COMPILER_FLAG})
+
+    if(FLAG_${CLEAN_COMPILER_FLAG})
+      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMPILER_FLAG}")
     endif()
   endforeach()
 endif()
