@@ -84,6 +84,7 @@ void te_on_worker_exit(uv_process_t *process, int64_t status, int signal)
 {
     te_worker_t *worker = (te_worker_t *) process;
     te_process_t *this_process = (te_process_t *) process->loop->data;
+    struct timespec wait;
 
     te_log(
         INFO,
@@ -100,8 +101,15 @@ void te_on_worker_exit(uv_process_t *process, int64_t status, int signal)
     te_free_worker_env(worker);
 
     if (this_process->state == RUNNING) {
+        /* TODO(awiddersheim): This _could_ block the entire event loop
+         * for a while so find a better way to spawn this with retries.
+         */
         while (te_spawn_worker(process->loop, worker)) {
-            sleep(0.5);
+            /* Sleep for 0.1 seconds */
+            wait.tv_sec = 0;
+            wait.tv_nsec = 100000000;
+
+            while (nanosleep(&wait, &wait));
         }
     }
 }
