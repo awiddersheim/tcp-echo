@@ -28,6 +28,11 @@ typedef enum {
     KILLED
 } te_process_state_t;
 
+typedef struct {
+    te_process_state_t state;
+    int is_worker;
+} te_process_t;
+
 extern int is_worker;
 extern uv_loop_t loop;
 extern te_process_state_t process_state;

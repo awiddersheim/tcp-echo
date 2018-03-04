@@ -1,10 +1,6 @@
 #include "tcp-echo.h"
 
-uv_loop_t loop;
-
-te_process_state_t process_state = RUNNING;
-
-int is_worker = 0;
+uv_loop_t te_loop;
 
 extern char **environ;
 
@@ -89,6 +85,7 @@ void te_init_worker(te_worker_t *worker, int id)
 void te_on_worker_exit(uv_process_t *process, int64_t status, int signal)
 {
     te_worker_t *worker = (te_worker_t *) process;
+    te_process_t *this_process = (te_process_t *) process->loop->data;
 
     te_log(
         INFO,
@@ -104,8 +101,8 @@ void te_on_worker_exit(uv_process_t *process, int64_t status, int signal)
 
     te_free_worker_env(worker);
 
-    if (process_state == RUNNING) {
-        while (te_spawn_worker(&loop, worker)) {
+    if (this_process->state == RUNNING) {
+        while (te_spawn_worker(process->loop, worker)) {
             sleep(0.5);
         }
     }
@@ -182,6 +179,7 @@ int main(int argc, char *argv[])
     te_worker_t *workers;
     uv_cpu_info_t *cpu_info;
     int cpu_count;
+    te_process_t process = {RUNNING, 0};
     uv_signal_t sigquit;
     uv_signal_t sigterm;
     uv_signal_t sigint;
@@ -190,12 +188,14 @@ int main(int argc, char *argv[])
     te_setproctitle("tcp-echo", "master");
     snprintf(title, sizeof(title), "master");
 
-    if ((result = uv_loop_init(&loop)) < 0)
+    if ((result = uv_loop_init(&te_loop)) < 0)
         te_log_uv(FATAL, result, "Could not create master loop");
 
-    uv_signal_init(&loop, &sigquit);
-    uv_signal_init(&loop, &sigterm);
-    uv_signal_init(&loop, &sigint);
+    te_loop.data = &process;
+
+    uv_signal_init(&te_loop, &sigquit);
+    uv_signal_init(&te_loop, &sigterm);
+    uv_signal_init(&te_loop, &sigint);
     uv_signal_start(&sigquit, te_signal_recv, SIGQUIT);
     uv_signal_start(&sigterm, te_signal_recv, SIGTERM);
     uv_signal_start(&sigint, te_signal_recv, SIGINT);
@@ -219,7 +219,7 @@ int main(int argc, char *argv[])
     for (i = 0; i < cpu_count;) {
         te_init_worker(&workers[i], i + 1);
 
-        if (te_spawn_worker(&loop, &workers[i]))
+        if (te_spawn_worker(&te_loop, &workers[i]))
             continue;
 
         i++;
@@ -227,18 +227,18 @@ int main(int argc, char *argv[])
 
     te_log(INFO, "Listening on 0.0.0.0:%d", PORT_NUMBER);
 
-    uv_run(&loop, UV_RUN_DEFAULT);
+    uv_run(&te_loop, UV_RUN_DEFAULT);
 
     te_log(INFO, "Master shutting down");
 
     /* TODO(awiddersheim) Schedule CPU affinity per worker */
-    for (i = 0; i < cpu_count && process_state != KILLED;) {
+    for (i = 0; i < cpu_count && process.state != KILLED;) {
         if (workers[i].alive) {
             te_log(INFO, "Terminating (worker-%d) with pid (%d)", workers[i].id, workers[i].pid);
 
             uv_kill(workers[i].pid, SIGTERM);
 
-            uv_run(&loop, UV_RUN_ONCE);
+            uv_run(&te_loop, UV_RUN_ONCE);
 
             if (workers[i].alive)
                 continue;
@@ -247,7 +247,7 @@ int main(int argc, char *argv[])
         i++;
     }
 
-    if (process_state == KILLED) {
+    if (process.state == KILLED) {
         te_log(WARN, "Master was killed before stopping all workers");
     } else {
         free(workers);

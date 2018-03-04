@@ -21,24 +21,26 @@ int te_os_getenv(const char *name, char **var)
     return result;
 }
 
-void te_signal_recv(__attribute__((unused)) uv_signal_t *handle, int signal)
+void te_signal_recv(uv_signal_t *handle, int signal)
 {
+    te_process_t *process = (te_process_t *) handle->loop->data;
+
     te_log(INFO, "Processing signal (%s)", strsignal(signal));
 
     switch (signal) {
         case SIGINT:
-            if (is_worker)
+            if (process->is_worker)
                 break;
         case SIGQUIT:
         case SIGTERM:
-            uv_stop(&loop);
+            uv_stop(handle->loop);
 
-            switch (process_state) {
+            switch (process->state) {
                 case RUNNING:
-                    process_state = STOPPING;
+                    process->state = STOPPING;
                     break;
                 default:
-                    process_state = KILLED;
+                    process->state = KILLED;
                     break;
             }
 
