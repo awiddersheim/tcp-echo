@@ -22,6 +22,32 @@ jobs:
       - run:
           command: make
           working_directory: build
+  build_centos_clang:
+    docker:
+      - image: centos:7
+    steps:
+      - checkout
+      - run:
+          command: |
+            yum -y install \
+              automake \
+              clang \
+              cmake \
+              gcc \
+              gcc-c++ \
+              git \
+              libtool \
+              make
+      - run: mkdir build
+      - run:
+          command: cmake ..
+          environment:
+            - CC: /usr/bin/clang
+            - CXX: /usr/bin/clang++
+          working_directory: build
+      - run:
+          command: make
+          working_directory: build
   build_ubuntu:
     docker:
       - image: ubuntu:16.04
@@ -50,4 +76,5 @@ workflows:
   build:
     jobs:
       - build_centos
+      - build_centos_clang
       - build_ubuntu
