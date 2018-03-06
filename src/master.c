@@ -134,11 +134,12 @@ int te_spawn_worker(uv_loop_t *loop, te_worker_t *worker)
     te_set_worker_env(&worker->options.env, "WORKER_TITLE", worker->title);
 
     worker->options.stdio = stdio;
-    worker->options.stdio[0].flags = UV_INHERIT_FD;
-    worker->options.stdio[0].data.fd = 1;
+    worker->options.stdio[0].flags = UV_IGNORE;
     worker->options.stdio[1].flags = UV_INHERIT_FD;
-    worker->options.stdio[1].data.fd = 2;
-    worker->options.stdio_count = 2;
+    worker->options.stdio[1].data.fd = 1;
+    worker->options.stdio[2].flags = UV_INHERIT_FD;
+    worker->options.stdio[2].data.fd = 2;
+    worker->options.stdio_count = 3;
 
     te_log(INFO, "Creating worker (%s)", worker->title);
 
