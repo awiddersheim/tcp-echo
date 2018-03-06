@@ -120,7 +120,7 @@ void te_on_worker_exit(uv_process_t *process, int64_t status, int signal)
 int te_spawn_worker(uv_loop_t *loop, te_worker_t *worker)
 {
     int result;
-    uv_stdio_container_t stdio[2];
+    uv_stdio_container_t stdio[3];
     char *args[2];
 
     args[0] = "tcp-echo-worker";
