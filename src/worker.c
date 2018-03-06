@@ -100,7 +100,7 @@ void te_conn_write_timeout(uv_write_t *request, int status)
     te_sock_set_linger(fd, 1, 0);
     #endif
 
-    if (status != UV_ECANCELED)
+    if (!uv_is_closing((uv_handle_t *) write_request->conn))
         uv_close((uv_handle_t *) write_request->conn, te_on_conn_close);
 
     free_write_request(write_request);
