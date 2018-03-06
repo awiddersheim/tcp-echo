@@ -19,7 +19,7 @@ void te_on_loop_close(uv_handle_t *handle, __attribute__((unused)) void *arg)
     if (uv_is_closing(handle))
         return;
 
-    switch (uv_handle_get_type(handle)) {
+    switch (handle->type) {
         case UV_TCP:
             if (*(te_tcp_type_t *) handle->data == CLIENT)
                 uv_close(handle, te_on_conn_close);
