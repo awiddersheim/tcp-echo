@@ -15,7 +15,7 @@ typedef struct worker {
 
 int te_spawn_worker(uv_loop_t *loop, te_worker_t *worker);
 
-void te_free_worker_env(te_worker_t *worker)
+void te_free_worker(te_worker_t *worker)
 {
     int i;
 
@@ -23,6 +23,8 @@ void te_free_worker_env(te_worker_t *worker)
         free(worker->options.env[i]);
 
     free(worker->options.env);
+    free(worker->options.stdio);
+    free(worker->options.args);
 }
 
 void te_set_worker_env(char ***env, char *name, char *value)
@@ -66,9 +68,51 @@ char **te_init_worker_env()
     return envp;
 }
 
+void te_on_worker_close(uv_handle_t *handle)
+{
+    te_worker_t *worker = (te_worker_t *) handle;
+    te_process_t *process = (te_process_t *) handle->loop->data;
+    struct timespec wait;
+
+    te_log(
+        ((process->state == RUNNING) ? WARN : INFO),
+        "Worker (%s) with pid (%d) exited with (%ld)",
+        worker->title,
+        worker->pid,
+        worker->status
+    );
+
+    if (process->state == RUNNING) {
+        /* TODO(awiddersheim): This _could_ block the entire event loop
+         * for a while so find a better way to spawn this with retries.
+         */
+        while (te_spawn_worker(handle->loop, worker)) {
+            /* Sleep for 0.1 seconds */
+            wait.tv_sec = 0;
+            wait.tv_nsec = 100000000;
+
+            while (nanosleep(&wait, &wait));
+        }
+    } else {
+        te_free_worker(worker);
+    }
+}
+
+void te_on_worker_exit(uv_process_t *process, int64_t status, int signal)
+{
+    te_worker_t *worker = (te_worker_t *) process;
+
+    worker->status = status;
+    worker->signal = signal;
+    worker->alive = 0;
+
+    uv_close((uv_handle_t *) process, te_on_worker_close);
+}
+
 void te_init_worker(te_worker_t *worker, int id)
 {
     int result;
+    int stdio_count = 3;
 
     memset(worker, 0x0, sizeof(te_worker_t));
 
@@ -78,68 +122,29 @@ void te_init_worker(te_worker_t *worker, int id)
 
     if (result >= 0 && (size_t) result >= sizeof(worker->title))
         te_log(WARN, "Could not write entire worker title (worker-%d)", id);
-}
-
-void te_on_worker_exit(uv_process_t *process, int64_t status, int signal)
-{
-    te_worker_t *worker = (te_worker_t *) process;
-    te_process_t *this_process = (te_process_t *) process->loop->data;
-    struct timespec wait;
-
-    te_log(
-        INFO,
-        "Worker (%s) with pid (%d) exited with (%ld)",
-        worker->title,
-        uv_process_get_pid(process),
-        (long) status
-    );
-
-    worker->status = status;
-    worker->signal = signal;
-    worker->alive = 0;
-
-    te_free_worker_env(worker);
-
-    if (this_process->state == RUNNING) {
-        /* TODO(awiddersheim): This _could_ block the entire event loop
-         * for a while so find a better way to spawn this with retries.
-         */
-        while (te_spawn_worker(process->loop, worker)) {
-            /* Sleep for 0.1 seconds */
-            wait.tv_sec = 0;
-            wait.tv_nsec = 100000000;
-
-            while (nanosleep(&wait, &wait));
-        }
-    } else {
-        uv_close((uv_handle_t *) process, NULL);
-    }
-}
-
-
-int te_spawn_worker(uv_loop_t *loop, te_worker_t *worker)
-{
-    int result;
-    uv_stdio_container_t stdio[3];
-    char *args[2];
-
-    args[0] = "tcp-echo-worker";
-    args[1] = NULL;
 
     worker->options.exit_cb = te_on_worker_exit;
     worker->options.file = "tcp-echo-worker";
-    worker->options.args = args;
-    worker->options.env = te_init_worker_env();
 
+    worker->options.args = te_malloc(sizeof(char *) * 2);
+    worker->options.args[0] = "tcp-echo-worker";
+    worker->options.args[1] = NULL;
+
+    worker->options.env = te_init_worker_env();
     te_set_worker_env(&worker->options.env, "WORKER_TITLE", worker->title);
 
-    worker->options.stdio = stdio;
-    worker->options.stdio_count = 3;
+    worker->options.stdio = te_malloc(sizeof(uv_stdio_container_t) * stdio_count);
+    worker->options.stdio_count = stdio_count;
     worker->options.stdio[0].flags = UV_IGNORE;
     worker->options.stdio[1].flags = UV_INHERIT_FD;
     worker->options.stdio[1].data.fd = 1;
     worker->options.stdio[2].flags = UV_INHERIT_FD;
     worker->options.stdio[2].data.fd = 2;
+}
+
+int te_spawn_worker(uv_loop_t *loop, te_worker_t *worker)
+{
+    int result;
 
     te_log(INFO, "Creating worker (%s)", worker->title);
 

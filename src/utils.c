@@ -43,7 +43,7 @@ void te_close_loop(uv_loop_t *loop)
     for (i = 0; i <= 10 && uv_run(loop, UV_RUN_ONCE); i++);
 
     if (uv_loop_close(loop))
-        te_log(WARN, "Could not close loop");
+        te_log(WARN, "Could not cleanly close loop");
 }
 
 int te_os_getenv(const char *name, char **var)
