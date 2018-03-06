@@ -45,7 +45,7 @@ void te_close_loop(uv_loop_t *loop)
     if (uv_loop_close(loop)) {
         te_log(WARN, "Could not close loop");
 
-        if (LOG_LEVEL >= DEBUG)
+        if (LOG_LEVEL <= DEBUG)
             uv_print_all_handles(loop, stdout);
     }
 }
