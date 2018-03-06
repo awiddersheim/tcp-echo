@@ -69,6 +69,12 @@ te_write_req_t *te_init_write_request(te_conn_t *conn, char *buffer, int size)
     return write_request;
 }
 
+void free_write_request(te_write_req_t *write_request)
+{
+    free(write_request->buffer.base);
+    free(write_request);
+}
+
 void te_echo_write(uv_write_t *request, int status)
 {
     te_write_req_t *write_request = (te_write_req_t *) request;
@@ -76,16 +82,13 @@ void te_echo_write(uv_write_t *request, int status)
     if (status)
         te_log_uv(ERROR, status, "Could not write to (%s)", write_request->conn->peer);
 
-    free(write_request->buffer.base);
-    free(write_request);
+    free_write_request(write_request);
 }
 
 void te_conn_write_timeout(uv_write_t *request, int status)
 {
     int fd;
     te_write_req_t *write_request = (te_write_req_t *) request;
-
-    te_log(INFO, "Type (%s)", uv_handle_type_name(uv_handle_get_type((uv_handle_t *) write_request)));
 
     if (status)
         te_log_uv(ERROR, status, "Could not write to (%s)", write_request->conn->peer);
@@ -99,7 +102,7 @@ void te_conn_write_timeout(uv_write_t *request, int status)
 
     uv_close((uv_handle_t *) write_request->conn, te_on_conn_close);
 
-    free(write_request);
+    free_write_request(write_request);
 }
 
 void te_echo_read(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buffer)
@@ -140,7 +143,7 @@ void te_on_stale_walk(uv_handle_t *handle, __attribute__((unused)) void *arg)
 {
     te_conn_t *conn;
     double difference;
-    const char *timeout = "Closing connection due to inactivity\n";
+    char *buffer;
     te_write_req_t *write_request;
 
     if (uv_is_closing(handle)
@@ -158,7 +161,9 @@ void te_on_stale_walk(uv_handle_t *handle, __attribute__((unused)) void *arg)
     if (difference > CONNECTION_TIMEOUT) {
         te_log(INFO, "Connection from (%s) has timed out", conn->peer);
 
-        write_request = te_init_write_request(conn, (char *) timeout, strlen(timeout));
+        te_asprintf(&buffer, "Closing connection due to inactivity\n");
+
+        write_request = te_init_write_request(conn, buffer, strlen(buffer));
 
         uv_write(
             (uv_write_t *) write_request,
