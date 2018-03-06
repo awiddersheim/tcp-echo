@@ -19,7 +19,7 @@ void te_update_worker_title()
         goto cleanup;
     }
 
-    memcpy(&title, titleptr, sizeof(title));
+    memcpy(&title, titleptr, strlen(titleptr));
 
     cleanup:
         free(titleptr);
