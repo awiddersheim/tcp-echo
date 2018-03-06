@@ -9,6 +9,9 @@ void te_on_conn_close(uv_handle_t *handle)
 {
     te_conn_t *conn = (te_conn_t *) handle;
 
+    if (uv_is_closing(handle))
+        return;
+
     free(conn->client.data);
     free(conn->peer);
     free(conn);
