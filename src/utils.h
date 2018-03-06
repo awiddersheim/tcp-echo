@@ -11,6 +11,11 @@ int te_gettimestamp(char *buffer, size_t size);
 int te_os_getenv(const char *name, char **var);
 void te_signal_recv(uv_signal_t *handle, int signal);
 
+void te_on_server_close(uv_handle_t *handle);
+void te_on_conn_close(uv_handle_t *handle);
+void te_on_loop_close(uv_handle_t *handle, void *arg);
+void te_close_loop(uv_loop_t *loop);
+
 void te_initproctitle (int argc, char **argv);
 void te_setproctitle (const char *prog, const char *txt);
 

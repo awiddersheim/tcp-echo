@@ -1,5 +1,55 @@
 #include "tcp-echo.h"
 
+void te_on_server_close(uv_handle_t *handle)
+{
+    free(handle->data);
+}
+
+void te_on_conn_close(uv_handle_t *handle)
+{
+    te_conn_t *conn = (te_conn_t *) handle;
+
+    free(conn->client.data);
+    free(conn->peer);
+    free(conn);
+}
+
+void te_on_loop_close(uv_handle_t *handle, __attribute__((unused)) void *arg)
+{
+    if (uv_is_closing(handle))
+        return;
+
+    switch (uv_handle_get_type(handle)) {
+        case UV_TCP:
+            if (*(te_tcp_type_t *) handle->data == CLIENT)
+                uv_close(handle, te_on_conn_close);
+            else
+                uv_close(handle, te_on_server_close);
+
+            break;
+        default:
+            uv_close(handle, NULL);
+            break;
+    }
+}
+
+void te_close_loop(uv_loop_t *loop)
+{
+    int i;
+
+    uv_walk(loop, te_on_loop_close, NULL);
+
+    /* Run loop a few times to clear out any handlers */
+    for (i = 0; i <= 10 && uv_run(loop, UV_RUN_ONCE); i++);
+
+    if (uv_loop_close(loop)) {
+        te_log(WARN, "Could not close loop");
+
+        if (LOG_LEVEL >= DEBUG)
+            uv_print_all_handles(loop, stdout);
+    }
+}
+
 int te_os_getenv(const char *name, char **var)
 {
     int result;

@@ -33,6 +33,17 @@ typedef struct {
     int is_worker;
 } te_process_t;
 
+typedef struct {
+    uv_tcp_t client;
+    char *peer;
+    time_t timeout;
+} te_conn_t;
+
+typedef enum {
+    SERVER = 1,
+    CLIENT = 2
+} te_tcp_type_t;
+
 #include "utils.h"
 
 #endif

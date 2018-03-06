@@ -1,21 +1,10 @@
 #include "tcp-echo.h"
 
 typedef struct {
-    uv_tcp_t client;
-    char *peer;
-    time_t timeout;
-} te_conn_t;
-
-typedef struct {
     uv_write_t request;
     uv_buf_t buffer;
     te_conn_t *conn;
 } te_write_req_t;
-
-typedef enum {
-    SERVER = 1,
-    CLIENT = 2
-} te_tcp_type_t;
 
 void te_update_worker_title()
 {
@@ -23,9 +12,9 @@ void te_update_worker_title()
     char *titleptr;
 
     if ((result = te_os_getenv("WORKER_TITLE", &titleptr)) < 0) {
-        te_log_uv(WARN, result, "Could not set worker title");
-
         snprintf(title, sizeof(title), "worker-%d", uv_os_getpid());
+
+        te_log_uv(WARN, result, "Could not set worker title");
 
         goto cleanup;
     }
@@ -80,15 +69,6 @@ te_write_req_t *te_init_write_request(te_conn_t *conn, char *buffer, int size)
     return write_request;
 }
 
-void te_on_conn_close(uv_handle_t *handle)
-{
-    te_conn_t *conn = (te_conn_t *) handle;
-
-    free(conn->client.data);
-    free(conn->peer);
-    free(conn);
-}
-
 void te_echo_write(uv_write_t *request, int status)
 {
     te_write_req_t *write_request = (te_write_req_t *) request;
@@ -104,6 +84,8 @@ void te_conn_write_timeout(uv_write_t *request, int status)
 {
     int fd;
     te_write_req_t *write_request = (te_write_req_t *) request;
+
+    te_log(INFO, "Type (%s)", uv_handle_type_name(uv_handle_get_type((uv_handle_t *) write_request)));
 
     if (status)
         te_log_uv(ERROR, status, "Could not write to (%s)", write_request->conn->peer);
@@ -161,30 +143,30 @@ void te_on_stale_walk(uv_handle_t *handle, __attribute__((unused)) void *arg)
     const char *timeout = "Closing connection due to inactivity\n";
     te_write_req_t *write_request;
 
-    if (uv_is_closing(handle))
+    if (uv_is_closing(handle)
+            || uv_handle_get_type(handle) != UV_TCP
+            || handle->data == NULL
+            || *(te_tcp_type_t *) handle->data != CLIENT)
         return;
 
-    if (uv_handle_get_type(handle) == UV_TCP && handle->data != NULL
-            && *(te_tcp_type_t *) handle->data == CLIENT) {
-        conn = (te_conn_t *) handle;
+    conn = (te_conn_t *) handle;
 
-        difference = difftime(time(NULL), conn->timeout);
+    difference = difftime(time(NULL), conn->timeout);
 
-        te_log(DEBUG, "Connection from (%s) has been idle for (%.0f) seconds", conn->peer, difference);
+    te_log(DEBUG, "Connection from (%s) has been idle for (%.0f) seconds", conn->peer, difference);
 
-        if (difference > CONNECTION_TIMEOUT) {
-            te_log(INFO, "Connection from (%s) has timed out", conn->peer);
+    if (difference > CONNECTION_TIMEOUT) {
+        te_log(INFO, "Connection from (%s) has timed out", conn->peer);
 
-            write_request = te_init_write_request(conn, (char *) timeout, strlen(timeout));
+        write_request = te_init_write_request(conn, (char *) timeout, strlen(timeout));
 
-            uv_write(
-                (uv_write_t *) write_request,
-                (uv_stream_t *) conn,
-                &write_request->buffer,
-                1,
-                te_conn_write_timeout
-            );
-        }
+        uv_write(
+            (uv_write_t *) write_request,
+            (uv_stream_t *) conn,
+            &write_request->buffer,
+            1,
+            te_conn_write_timeout
+        );
     }
 }
 
@@ -296,6 +278,10 @@ int main(int argc, char *argv[])
     uv_run(&loop, UV_RUN_DEFAULT);
 
     te_log(INFO, "Worker shutting down");
+
+    te_close_loop(&loop);
+
+    te_log(INFO, "All done");
 
     return 0;
 }

@@ -111,6 +111,8 @@ void te_on_worker_exit(uv_process_t *process, int64_t status, int signal)
 
             while (nanosleep(&wait, &wait));
         }
+    } else {
+        uv_close((uv_handle_t *) process, NULL);
     }
 }
 
@@ -259,6 +261,8 @@ int main(int argc, char *argv[])
     } else {
         free(workers);
     }
+
+    te_close_loop(&loop);
 
     te_log(INFO, "All done");
 
