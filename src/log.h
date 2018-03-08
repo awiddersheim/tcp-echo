@@ -3,7 +3,7 @@
 
 #include "tcp-echo.h"
 
-#define MAX_TITLE 256
+#define MAX_TITLE 16
 
 char title[MAX_TITLE];
 

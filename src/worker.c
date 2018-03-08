@@ -12,17 +12,19 @@ void te_update_worker_title()
     char *titleptr;
 
     if ((result = te_os_getenv("WORKER_TITLE", &titleptr)) < 0) {
-        snprintf(title, sizeof(title), "worker-%d", uv_os_getpid());
-
         te_log_uv(WARN, result, "Could not set worker title");
 
-        goto cleanup;
+        result = snprintf(title, MAX_TITLE, "worker-%d", uv_os_getpid());
+    } else {
+        te_log(DEBUG, "Setting worker title (%s)", titleptr);
+
+        result = snprintf(title, MAX_TITLE, "%s", titleptr);
     }
 
-    memcpy(&title, titleptr, strlen(titleptr));
+    if (result >= MAX_TITLE)
+        te_log(WARN, "Could not write entire worker title");
 
-    cleanup:
-        free(titleptr);
+    free(titleptr);
 }
 
 void te_alloc_buffer(__attribute__((unused)) uv_handle_t *handle, size_t size, uv_buf_t *buffer)

@@ -118,9 +118,9 @@ void te_init_worker(te_worker_t *worker, int id)
 
     worker->id = id;
 
-    result = snprintf(worker->title, sizeof(worker->title), "worker-%d", id);
+    result = snprintf(worker->title, MAX_TITLE, "worker-%d", id);
 
-    if (result >= 0 && (size_t) result >= sizeof(worker->title))
+    if (result >= MAX_TITLE)
         te_log(WARN, "Could not write entire worker title (worker-%d)", id);
 
     worker->options.exit_cb = te_on_worker_exit;
