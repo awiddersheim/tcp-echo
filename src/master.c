@@ -206,7 +206,7 @@ int main(int argc, char *argv[])
 
     te_initproctitle(argc, argv);
     te_setproctitle("tcp-echo", "master");
-    snprintf(title, sizeof(title), "master");
+    snprintf(title, MAX_TITLE, "master");
 
     if ((result = uv_loop_init(&loop)) < 0)
         te_log_uv(FATAL, result, "Could not create master loop");
