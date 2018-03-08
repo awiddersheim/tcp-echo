@@ -2,6 +2,8 @@
 
 extern char **environ;
 
+int workers_reaped;
+
 typedef struct worker {
     uv_process_t child;
     uv_process_options_t options;
@@ -95,6 +97,8 @@ void te_on_worker_close(uv_handle_t *handle)
         }
     } else {
         te_free_worker(worker);
+
+        workers_reaped++;
     }
 }
 
@@ -190,9 +194,10 @@ int main(int argc, char *argv[])
 {
     int i;
     int result;
+    int cpu_count;
+    int worker_count;
     te_worker_t *workers;
     uv_cpu_info_t *cpu_info;
-    int cpu_count;
     te_process_t process = {RUNNING, 0};
     uv_loop_t loop;
     uv_signal_t sigquit;
@@ -223,15 +228,17 @@ int main(int argc, char *argv[])
     uv_free_cpu_info(cpu_info, cpu_count);
 
     #if defined(WORKERS) && WORKERS > 0
-    cpu_count = WORKERS;
+    worker_count = WORKERS;
+    #else
+    worker_count = cpu_count;
     #endif
 
-    te_log(INFO, "Starting (%d) workers", cpu_count);
+    te_log(INFO, "Starting (%d) workers", worker_count);
 
-    workers = te_malloc(sizeof(te_worker_t) * cpu_count);
+    workers = te_malloc(sizeof(te_worker_t) * worker_count);
 
     /* TODO(awiddersheim) Schedule CPU affinity per worker */
-    for (i = 0; i < cpu_count;) {
+    for (i = 0; i < worker_count;) {
         te_init_worker(&workers[i], i + 1);
 
         if (te_spawn_worker(&loop, &workers[i]))
@@ -246,23 +253,30 @@ int main(int argc, char *argv[])
 
     te_log(INFO, "Master shutting down");
 
-    for (i = 0; i < cpu_count && process.state != KILLED;) {
-        if (workers[i].alive) {
-            te_log(INFO, "Terminating (worker-%d) with pid (%d)", workers[i].id, workers[i].pid);
+    for (i = 0; i < worker_count; i++) {
+        if (!workers[i].alive)
+            continue;
 
-            uv_kill(workers[i].pid, SIGTERM);
+        te_log(
+            INFO,
+            "Terminating (worker-%d) with pid (%d)",
+            workers[i].id,
+            workers[i].pid
+        );
 
-            uv_run(&loop, UV_RUN_ONCE);
-
-            if (workers[i].alive)
-                continue;
-        }
-
-        i++;
+        uv_kill(workers[i].pid, SIGTERM);
     }
 
+    while (process.state != KILLED && worker_count > workers_reaped)
+        uv_run(&loop, UV_RUN_ONCE);
+
     if (process.state == KILLED) {
-        te_log(WARN, "Master was killed before stopping all workers");
+        te_log(
+            WARN,
+            "Master was killed before stopping all (%d) workers, only stopped (%d)",
+            worker_count,
+            workers_reaped
+        );
     } else {
         free(workers);
     }
