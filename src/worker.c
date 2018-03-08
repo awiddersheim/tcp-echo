@@ -77,7 +77,7 @@ void free_write_request(te_write_req_t *write_request)
     free(write_request);
 }
 
-void te_echo_write(uv_write_t *request, int status)
+void te_on_echo_write(uv_write_t *request, int status)
 {
     te_write_req_t *write_request = (te_write_req_t *) request;
 
@@ -87,7 +87,7 @@ void te_echo_write(uv_write_t *request, int status)
     free_write_request(write_request);
 }
 
-void te_conn_write_timeout(uv_write_t *request, int status)
+void te_on_conn_timeout(uv_write_t *request, int status)
 {
     int fd;
     te_write_req_t *write_request = (te_write_req_t *) request;
@@ -95,20 +95,21 @@ void te_conn_write_timeout(uv_write_t *request, int status)
     if (status)
         te_log_uv(ERROR, status, "Could not write to (%s)", write_request->conn->peer);
 
-    te_log(INFO, "Closing connection from (%s)", write_request->conn->peer);
-
     uv_fileno((uv_handle_t *) write_request->conn, &fd);
     #ifdef SEND_RESET
     te_sock_set_linger(fd, 1, 0);
     #endif
 
-    if (!uv_is_closing((uv_handle_t *) write_request->conn))
+    if (!uv_is_closing((uv_handle_t *) write_request->conn)) {
+        te_log(INFO, "Closing connection from (%s)", write_request->conn->peer);
+
         uv_close((uv_handle_t *) write_request->conn, te_on_conn_close);
+    }
 
     free_write_request(write_request);
 }
 
-void te_echo_read(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buffer)
+void te_on_echo_read(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buffer)
 {
     te_conn_t *conn = (te_conn_t *) stream;
     te_write_req_t *write_request;
@@ -121,7 +122,7 @@ void te_echo_read(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buffer)
             (uv_stream_t *) conn,
             &write_request->buffer,
             1,
-            te_echo_write
+            te_on_echo_write
         );
 
         conn->timeout = time(NULL);
@@ -173,7 +174,7 @@ void te_on_stale_walk(uv_handle_t *handle, __attribute__((unused)) void *arg)
             (uv_stream_t *) conn,
             &write_request->buffer,
             1,
-            te_conn_write_timeout
+            te_on_conn_timeout
         );
     }
 }
@@ -205,7 +206,7 @@ void te_on_connection(uv_stream_t *server, int status)
         te_sock_set_linger(fd, 1, LINGER_TIMEOUT);
         te_sock_set_tcp_linger(fd, LINGER_TIMEOUT);
 
-        uv_read_start((uv_stream_t *) conn, te_alloc_buffer, te_echo_read);
+        uv_read_start((uv_stream_t *) conn, te_alloc_buffer, te_on_echo_read);
     } else {
         te_log_uv(ERROR, result, "Could not accept new connection");
 

@@ -37,6 +37,7 @@ typedef struct {
     uv_tcp_t client;
     char *peer;
     time_t timeout;
+    uv_shutdown_t shutdown;
 } te_conn_t;
 
 typedef enum {

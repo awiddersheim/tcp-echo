@@ -230,7 +230,7 @@ int main(int argc, char *argv[])
 
     workers = te_malloc(sizeof(te_worker_t) * cpu_count);
 
-    /* TODO(awiddersheim): Pin each worker to it's own CPU. */
+    /* TODO(awiddersheim) Schedule CPU affinity per worker */
     for (i = 0; i < cpu_count;) {
         te_init_worker(&workers[i], i + 1);
 
@@ -246,7 +246,6 @@ int main(int argc, char *argv[])
 
     te_log(INFO, "Master shutting down");
 
-    /* TODO(awiddersheim) Schedule CPU affinity per worker */
     for (i = 0; i < cpu_count && process.state != KILLED;) {
         if (workers[i].alive) {
             te_log(INFO, "Terminating (worker-%d) with pid (%d)", workers[i].id, workers[i].pid);

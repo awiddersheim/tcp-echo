@@ -14,6 +14,20 @@ void te_on_conn_close(uv_handle_t *handle)
     free(conn);
 }
 
+void te_on_conn_shutdown(uv_shutdown_t *shutdown_request, int status)
+{
+    te_conn_t *conn = (te_conn_t *) shutdown_request->handle;
+
+    if (status)
+        te_log_uv(WARN, status, "Could not shutdown connection from (%s)", conn->peer);
+
+    if (!uv_is_closing((uv_handle_t *) shutdown_request->handle)) {
+        te_log(INFO, "Closing connection from (%s)", conn->peer);
+
+        uv_close((uv_handle_t *) shutdown_request->handle, te_on_conn_close);
+    }
+}
+
 void te_on_loop_close(uv_handle_t *handle, __attribute__((unused)) void *arg)
 {
     if (uv_is_closing(handle))
@@ -21,10 +35,21 @@ void te_on_loop_close(uv_handle_t *handle, __attribute__((unused)) void *arg)
 
     switch (handle->type) {
         case UV_TCP:
-            if (*(te_tcp_type_t *) handle->data == CLIENT)
-                uv_close(handle, te_on_conn_close);
-            else
+            if (*(te_tcp_type_t *) handle->data == CLIENT) {
+                te_log(
+                    INFO,
+                    "Shutting down connection from (%s)",
+                    ((te_conn_t *) handle)->peer
+                );
+
+                uv_shutdown(
+                    &((te_conn_t *) handle)->shutdown,
+                    (uv_stream_t *) handle,
+                    te_on_conn_shutdown
+                );
+            } else {
                 uv_close(handle, te_on_server_close);
+            }
 
             break;
         default:
