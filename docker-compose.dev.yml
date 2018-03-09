@@ -1,0 +1,9 @@
+version: "3"
+
+services:
+  tcp-echo:
+    command: cat
+    tty: true
+    stop_signal: SIGKILL
+    volumes:
+      - .:/tcp-echo-dev

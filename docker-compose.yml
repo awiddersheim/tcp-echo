@@ -1,0 +1,8 @@
+version: "3"
+
+services:
+  tcp-echo:
+    build: .
+    image: tcp-echo
+    ports:
+      - 127.0.0.1:8090:8090
