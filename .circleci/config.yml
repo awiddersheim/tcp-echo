@@ -91,7 +91,7 @@ workflows:
       - build_centos
       - build_centos_clang
       - build_ubuntu
-      - docker_push
+      - docker_push:
           requires:
             - build_centos
             - build_centos_clang
