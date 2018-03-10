@@ -47,5 +47,8 @@
 /* Enable TCP_NODELAY on client connections */
 #define ENABLE_NODELAY
 
+/* Maximum length of a worker title */
+#define MAX_WORKER_TITLE 16
+
 /* Define if strerror_r returns char* */
 #cmakedefine STRERROR_R_CHAR_P

@@ -19,6 +19,7 @@
 #include <signal.h>
 #include <unistd.h>
 #include <uv.h>
+#include <sds.h>
 #include "error.h"
 #include "log.h"
 
@@ -35,7 +36,7 @@ typedef struct {
 
 typedef struct {
     uv_tcp_t client;
-    char *peer;
+    sds peer;
     time_t timeout;
     uv_shutdown_t shutdown;
 } te_conn_t;

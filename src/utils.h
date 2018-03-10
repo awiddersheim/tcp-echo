@@ -6,7 +6,7 @@
 void te_sock_setreuse_port(int sock, int reuse);
 void te_sock_set_linger(int sock, int enable, int timeout);
 void te_sock_set_tcp_linger(int sock, int timeout);
-char *te_getpeername(uv_tcp_t *handle);
+sds te_getpeername(uv_tcp_t *handle);
 int te_gettimestamp(char *buffer, size_t size);
 int te_os_getenv(const char *name, char **var);
 void te_signal_recv(uv_signal_t *handle, int signal);
@@ -40,34 +40,6 @@ static __inline void *te__realloc(void *oldptr, size_t size, const char *file, i
         te_log_errno(FATAL, "Could not re-allocate memory in (%s) on line (%d)", file, line);
 
     return ptr;
-}
-
-static __inline void te_vasprintf(char **strp, const char *format, va_list args)
-{
-    int result;
-    va_list args_tmp;
-
-    /* Calculate length needed for string */
-    __va_copy(args_tmp, args);
-    result = (vsnprintf(NULL, 0, format, args_tmp) + 1);
-    va_end(args_tmp);
-
-    /* Allocate and fill string */
-    *strp = te_malloc(result);
-
-    result = vsnprintf(*strp, result, format, args);
-
-    if (result < 0)
-        te_log(FATAL, "Could not create string (%d)", result);
-}
-
-static __inline void te_asprintf(char **strp, const char *format, ...)
-{
-    va_list args;
-
-    va_start(args, format);
-    te_vasprintf(strp, format, args);
-    va_end(args);
 }
 
 #endif

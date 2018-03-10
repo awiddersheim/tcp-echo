@@ -10,7 +10,7 @@ void te_on_conn_close(uv_handle_t *handle)
     te_conn_t *conn = (te_conn_t *) handle;
 
     free(conn->client.data);
-    free(conn->peer);
+    sdsfree(conn->peer);
     free(conn);
 }
 
@@ -170,11 +170,11 @@ void te_sock_set_tcp_linger(__attribute__((unused)) int sock, __attribute__((unu
     #endif
 }
 
-char *te_getpeername(uv_tcp_t *handle)
+sds te_getpeername(uv_tcp_t *handle)
 {
     struct sockaddr_in addr;
     int addrlen = sizeof(addr);
-    char *peer;
+    sds peer;
     char buffer[16];
     int result;
     int failure = 1;
@@ -193,9 +193,9 @@ char *te_getpeername(uv_tcp_t *handle)
 
     cleanup:
         if (failure)
-            te_asprintf(&peer, "unknown");
+            peer = sdsnew("unknown");
         else
-            te_asprintf(&peer, "%s:%d", buffer, ntohs(addr.sin_port));
+            peer = sdscatprintf(sdsempty(), "%s:%d", buffer, ntohs(addr.sin_port));
 
     return peer;
 }

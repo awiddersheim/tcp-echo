@@ -1,0 +1,19 @@
+project(sds-dep NONE)
+cmake_minimum_required(VERSION 2.8)
+
+include(ExternalProject)
+
+ExternalProject_Add(
+    sds
+    GIT_REPOSITORY https://github.com/antirez/sds.git
+    GIT_TAG 2.0.0
+    DOWNLOAD_DIR ${SDS_DEPS_DIR}
+    TMP_DIR ${SDS_DEPS_DIR}/tmp
+    STAMP_DIR ${SDS_DEPS_DIR}/stamp
+    SOURCE_DIR ${SDS_DEPS_DIR}/src
+    BUILD_IN_SOURCE 1
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND true
+    INSTALL_COMMAND ""
+    TEST_COMMAND ""
+)

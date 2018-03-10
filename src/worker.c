@@ -12,24 +12,22 @@ void te_update_worker_title()
     char *titleptr;
 
     if ((result = te_os_getenv("WORKER_TITLE", &titleptr)) < 0) {
+        title = sdscatprintf(sdsempty(), "worker-%d", uv_os_getpid());
+
         te_log_uv(WARN, result, "Could not set worker title");
-
-        result = snprintf(title, MAX_TITLE, "worker-%d", uv_os_getpid());
     } else {
-        te_log(DEBUG, "Setting worker title (%s)", titleptr);
+        title = sdscatprintf(sdsempty(), "%.*s", MAX_WORKER_TITLE, titleptr);
 
-        result = snprintf(title, MAX_TITLE, "%s", titleptr);
+        if (strlen(titleptr) > MAX_WORKER_TITLE)
+            te_log(WARN, "The worker title (%s) was too long and truncated", titleptr);
     }
-
-    if (result >= MAX_TITLE)
-        te_log(WARN, "Could not write entire worker title");
 
     free(titleptr);
 }
 
 void te_alloc_buffer(__attribute__((unused)) uv_handle_t *handle, size_t size, uv_buf_t *buffer)
 {
-    *buffer = uv_buf_init((char *) malloc(size), size);
+    *buffer = uv_buf_init((char *) te_malloc(size), size);
 }
 
 te_tcp_type_t *te_init_tcp_type(te_tcp_type_t type)
@@ -58,14 +56,14 @@ te_conn_t *te_init_conn(uv_loop_t *loop)
     return conn;
 }
 
-te_write_req_t *te_init_write_request(te_conn_t *conn, char *buffer, int size)
+te_write_req_t *te_init_write_request(te_conn_t *conn, sds buffer)
 {
     te_write_req_t *write_request;
 
     write_request = te_malloc(sizeof(te_write_req_t));
     memset(write_request, 0x0, sizeof(te_write_req_t));
 
-    write_request->buffer = uv_buf_init(buffer, size);
+    write_request->buffer = uv_buf_init(buffer, sdslen(buffer));
     write_request->conn = conn;
 
     return write_request;
@@ -73,7 +71,7 @@ te_write_req_t *te_init_write_request(te_conn_t *conn, char *buffer, int size)
 
 void free_write_request(te_write_req_t *write_request)
 {
-    free(write_request->buffer.base);
+    sdsfree(write_request->buffer.base);
     free(write_request);
 }
 
@@ -113,9 +111,12 @@ void te_on_echo_read(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buffer)
 {
     te_conn_t *conn = (te_conn_t *) stream;
     te_write_req_t *write_request;
+    sds new_buffer;
 
     if (nread > 0) {
-        write_request = te_init_write_request(conn, buffer->base, nread);
+        new_buffer = sdsnewlen(buffer->base, nread);
+
+        write_request = te_init_write_request(conn, new_buffer);
 
         uv_write(
             (uv_write_t *) write_request,
@@ -126,13 +127,10 @@ void te_on_echo_read(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buffer)
         );
 
         conn->timeout = time(NULL);
-
-        return;
-    }
-
-    if (nread < 0) {
+    } else if (nread < 0) {
         if (nread != UV_EOF) {
-            te_log_uv(ERROR, (int) nread, "Could not read from (%s), closing connection", conn->peer);
+            te_log_uv(ERROR, (int) nread, "Could not read from (%s)", conn->peer);
+            te_log(INFO, "Closing connection from (%s)", conn->peer);
         } else {
             te_log(INFO, "Connection closed by (%s)", conn->peer);
         }
@@ -147,7 +145,7 @@ void te_on_stale_walk(uv_handle_t *handle, __attribute__((unused)) void *arg)
 {
     te_conn_t *conn;
     double difference;
-    char *buffer;
+    sds buffer;
     te_write_req_t *write_request;
 
     if (uv_is_closing(handle)
@@ -163,11 +161,11 @@ void te_on_stale_walk(uv_handle_t *handle, __attribute__((unused)) void *arg)
     te_log(DEBUG, "Connection from (%s) has been idle for (%.0f) seconds", conn->peer, difference);
 
     if (difference > CONNECTION_TIMEOUT) {
-        te_log(INFO, "Connection from (%s) has timed out", conn->peer);
+        te_log(INFO, "Connection had timed out from (%s)", conn->peer);
 
-        te_asprintf(&buffer, "Closing connection due to inactivity\n");
+        buffer = sdsnew("Closing connection due to inactivity\n");
 
-        write_request = te_init_write_request(conn, buffer, strlen(buffer));
+        write_request = te_init_write_request(conn, buffer);
 
         uv_write(
             (uv_write_t *) write_request,
@@ -291,6 +289,8 @@ int main(int argc, char *argv[])
     te_close_loop(&loop);
 
     te_log(INFO, "All done");
+
+    sdsfree(title);
 
     return 0;
 }

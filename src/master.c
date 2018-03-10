@@ -12,7 +12,7 @@ typedef struct worker {
     int64_t status;
     int signal;
     int alive;
-    char title[MAX_TITLE];
+    sds title;
 } te_worker_t;
 
 int te_spawn_worker(uv_loop_t *loop, te_worker_t *worker);
@@ -22,11 +22,12 @@ void te_free_worker(te_worker_t *worker)
     int i;
 
     for (i = 0; worker->options.env[i] != NULL; i++)
-        free(worker->options.env[i]);
+        sdsfree(worker->options.env[i]);
 
     free(worker->options.env);
     free(worker->options.stdio);
     free(worker->options.args);
+    sdsfree(worker->title);
 }
 
 void te_set_worker_env(char ***env, char *name, char *value)
@@ -39,7 +40,7 @@ void te_set_worker_env(char ***env, char *name, char *value)
 
     newenv = te_realloc(*env, sizeof(char *) * (i + 2));
 
-    te_asprintf(&newenv[i], "%s=%s", name, value);
+    newenv[i] = sdscatprintf(sdsempty(), "%s=%s", name, value);
 
     newenv[++i] = NULL;
 
@@ -62,8 +63,7 @@ char **te_init_worker_env()
     envp = te_malloc(sizeof(char *) * (i + 1));
 
     for (i = 0; environ[i] != NULL; i++)
-        if ((envp[i] = strdup(environ[i])) == NULL)
-            te_log_errno(FATAL, "Could not initialize worker environment");
+        envp[i] = sdsnew(environ[i]);
 
     envp[i] = NULL;
 
@@ -115,17 +115,13 @@ void te_on_worker_exit(uv_process_t *process, int64_t status, int signal)
 
 void te_init_worker(te_worker_t *worker, int id)
 {
-    int result;
     int stdio_count = 3;
 
     memset(worker, 0x0, sizeof(te_worker_t));
 
     worker->id = id;
 
-    result = snprintf(worker->title, MAX_TITLE, "worker-%d", id);
-
-    if (result >= MAX_TITLE)
-        te_log(WARN, "Could not write entire worker title (worker-%d)", id);
+    worker->title = sdscatprintf(sdsempty(), "worker-%d", id);
 
     worker->options.exit_cb = te_on_worker_exit;
     worker->options.file = "tcp-echo-worker";
@@ -169,12 +165,12 @@ int te_update_path()
 {
     int result;
     char *path;
-    char *newpath;
+    sds newpath;
 
     result = te_os_getenv("PATH", &path);
 
-    te_asprintf(
-        &newpath,
+    newpath = sdscatprintf(
+        sdsempty(),
         result ? "%s." : "%s:.",
         result ? "" : path
     );
@@ -184,7 +180,7 @@ int te_update_path()
     if ((result = uv_os_setenv("PATH", newpath)) < 0)
         te_log_uv(WARN, result, "Could not setup path");
 
-    free(newpath);
+    sdsfree(newpath);
     free(path);
 
     return result;
@@ -206,7 +202,7 @@ int main(int argc, char *argv[])
 
     te_initproctitle(argc, argv);
     te_setproctitle("tcp-echo", "master");
-    snprintf(title, MAX_TITLE, "master");
+    title = sdsnew("master");
 
     if ((result = uv_loop_init(&loop)) < 0)
         te_log_uv(FATAL, result, "Could not create master loop");
@@ -284,6 +280,8 @@ int main(int argc, char *argv[])
     te_close_loop(&loop);
 
     te_log(INFO, "All done");
+
+    sdsfree(title);
 
     return 0;
 }
