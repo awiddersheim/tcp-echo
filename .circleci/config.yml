@@ -71,12 +71,12 @@ jobs:
       - run:
           command: make
           working_directory: build
-  push_docker:
+  docker_push:
     machine: true
     steps:
       - checkout
       - run: |
-          TAG=${CIRCLE_TAG:-$(git describe --long)}
+          TAG=${CIRCLE_TAG:-$(git describe --long | cut -d- -f 1,2)}
           echo "Building with the tag (${TAG})"
           docker build -t awiddersheim/tcp-echo:${TAG} .
           docker tag awiddersheim/tcp-echo:${TAG} awiddersheim/tcp-echo:latest
@@ -100,7 +100,7 @@ workflows:
           filters:
             tags:
               only: /^v.*/
-      - push_docker:
+      - docker_push:
           requires:
             - build_centos
             - build_centos_clang
