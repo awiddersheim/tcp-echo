@@ -23,4 +23,4 @@ RUN cmake .. \
 EXPOSE 8090
 
 USER tcp-echo
-ENTRYPOINT ["./tcp-echo-master"]
+CMD ["./tcp-echo-master"]
