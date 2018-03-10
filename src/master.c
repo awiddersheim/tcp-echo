@@ -2,7 +2,7 @@
 
 extern char **environ;
 
-int workers_reaped;
+static volatile int workers_reaped;
 
 typedef struct worker {
     uv_process_t child;
