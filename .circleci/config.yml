@@ -76,7 +76,7 @@ jobs:
     steps:
       - checkout
       - run: |
-          TAG=${CIRCLE_TAG:-$(git describe --long | cut -d- -f 1,2 | sed "s/-/./g")}
+          TAG=$(git describe --long | cut -d- -f 1,2 | sed "s/-/./g")
           echo "Building with the tag (${TAG})"
           docker build -t awiddersheim/tcp-echo:${TAG} .
           docker tag awiddersheim/tcp-echo:${TAG} awiddersheim/tcp-echo:latest
