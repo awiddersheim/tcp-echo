@@ -81,8 +81,7 @@ jobs:
           docker build -t awiddersheim/tcp-echo:${TAG} .
           docker tag awiddersheim/tcp-echo:${TAG} awiddersheim/tcp-echo:latest
           docker login -u ${DOCKER_USERNAME} -p ${DOCKER_PASSWORD}
-          docker push awiddersheim/tcp-echo:${TAG}
-          docker push awiddersheim/tcp-echo:latest
+          docker push awiddersheim/tcp-echo
 
 workflows:
   version: 2
