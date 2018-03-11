@@ -81,7 +81,7 @@ void te_on_worker_close(uv_handle_t *handle)
         "Worker (%s) with pid (%d) exited with (%ld)",
         worker->title,
         worker->pid,
-        worker->status
+        (long) worker->status
     );
 
     if (process->state == RUNNING) {
