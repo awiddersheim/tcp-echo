@@ -1,4 +1,5 @@
-FROM centos:7
+# Development
+FROM centos:7 as dev
 
 MAINTAINER Andrew Widdersheim <amwiddersheim@gmail.com>
 
@@ -10,15 +11,37 @@ RUN yum install -y \
       git \
       libtool \
       make \
-    && yum clean all \
-    && useradd tcp-echo
+      nc \
+      telnet \
+      valgrind \
+      vim
+
+WORKDIR /build
+
+STOPSIGNAL SIGKILL
+
+CMD ["sleep", "infinity"]
+
+
+# Development
+FROM dev as build
 
 COPY . /tcp-echo
 
-WORKDIR /tcp-echo/build
+WORKDIR /build
 
-RUN cmake .. \
-    && make -j4
+RUN cmake /tcp-echo
+RUN make -j4
+
+
+# Production
+FROM centos:7 as prod
+
+RUN useradd tcp-echo
+
+COPY --from=build /build/tcp-echo-master /build/tcp-echo-worker /tcp-echo/
+
+WORKDIR /tcp-echo
 
 EXPOSE 8090
 

@@ -1,9 +1,10 @@
-version: "3"
+version: "3.4"
 
 services:
   tcp-echo:
-    command: cat
-    tty: true
-    stop_signal: SIGKILL
+    build:
+      context: .
+      target: dev
+    image: tcp-echo-dev
     volumes:
-      - .:/tcp-echo-dev
+      - .:/tcp-echo
