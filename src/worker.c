@@ -254,9 +254,9 @@ int main(int argc, char *argv[])
     uv_tcp_t server;
     uv_timer_t stale_timer;
 
+    te_update_worker_title();
     te_initproctitle(argc, argv);
     te_setproctitle("tcp-echo", "worker");
-    te_update_worker_title();
 
     te_log(INFO, "Worker created");
 
@@ -291,6 +291,7 @@ int main(int argc, char *argv[])
     te_log(INFO, "All done");
 
     sdsfree(title);
+    te_freeproctitle();
 
     return 0;
 }

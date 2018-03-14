@@ -17,7 +17,7 @@ extern char **environ;
 static char **argv0;
 static size_t argv_lth;
 
-void te_initproctitle (int argc, char **argv)
+void te_initproctitle(int argc, char **argv)
 {
     int i;
     char **envp = environ;
@@ -47,7 +47,7 @@ void te_initproctitle (int argc, char **argv)
         argv0 = argv;
 }
 
-void te_setproctitle (const char *prog, const char *txt)
+void te_setproctitle(const char *prog, const char *txt)
 {
     size_t i;
     char buf[SPT_BUFSIZE];
@@ -71,4 +71,14 @@ void te_setproctitle (const char *prog, const char *txt)
     strcpy(argv0[0], buf);
 
     argv0[1] = NULL;
+}
+
+void te_freeproctitle()
+{
+    size_t i;
+
+    for (i = 0; environ[i] != NULL; i++)
+        free(environ[i]);
+
+    free(environ);
 }
