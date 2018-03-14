@@ -21,7 +21,7 @@ kernel][nginx-reuseport] using `SO_REUSEPORT`.
 
 # Running
 
-After building, run the server `./tcp-echo-masater`.
+After building, run the server `./tcp-echo-master`.
 
 # Testing
 
