@@ -16,10 +16,6 @@ void te_on_conn_close(uv_handle_t *handle);
 void te_on_loop_close(uv_handle_t *handle, void *arg);
 void te_close_loop(uv_loop_t *loop);
 
-void te_initproctitle(int argc, char **argv);
-void te_setproctitle(const char *prog, const char *txt);
-void te_freeproctitle();
-
 #define te_malloc(x) te__malloc(x, __FILE__, __LINE__)
 #define te_realloc(x, y) te__realloc(x, y, __FILE__, __LINE__)
 

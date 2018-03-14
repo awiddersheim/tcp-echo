@@ -201,15 +201,8 @@ int main(int argc, char *argv[])
     uv_signal_t sigint;
 
     title = sdsnew("master");
-
-    /* NOTE(awiddersheim): All environment actions need to happen before
-     * setting the proctitle because it will clobber the enviornment
-     * pretty horribly.
-     */
-    te_update_path();
-
-    te_initproctitle(argc, argv);
-    te_setproctitle("tcp-echo", "master");
+    uv_setup_args(argc, argv);
+    uv_set_process_title("tcp-echo-master");
 
     if ((result = uv_loop_init(&loop)) < 0)
         te_log_uv(FATAL, result, "Could not create master loop");
@@ -222,6 +215,8 @@ int main(int argc, char *argv[])
     uv_signal_start(&sigquit, te_signal_recv, SIGQUIT);
     uv_signal_start(&sigterm, te_signal_recv, SIGTERM);
     uv_signal_start(&sigint, te_signal_recv, SIGINT);
+
+    te_update_path();
 
     if ((result = uv_cpu_info(&cpu_info, &cpu_count)) < 0)
         te_log_uv(FATAL, result, "Could not determine number of CPUs");
@@ -287,7 +282,6 @@ int main(int argc, char *argv[])
     te_log(INFO, "All done");
 
     sdsfree(title);
-    te_freeproctitle();
 
     return 0;
 }

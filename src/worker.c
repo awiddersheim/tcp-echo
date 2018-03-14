@@ -6,23 +6,26 @@ typedef struct {
     te_conn_t *conn;
 } te_write_req_t;
 
-void te_update_worker_title()
+char *te_worker_title()
 {
     int result;
+    char *newtitle;
     char *titleptr;
 
     if ((result = te_os_getenv("WORKER_TITLE", &titleptr)) < 0) {
-        title = sdscatprintf(sdsempty(), "worker-%d", uv_os_getpid());
+        newtitle = sdscatprintf(sdsempty(), "worker-%d", uv_os_getpid());
 
         te_log_uv(WARN, result, "Could not set worker title");
     } else {
-        title = sdscatprintf(sdsempty(), "%.*s", MAX_WORKER_TITLE, titleptr);
+        newtitle = sdscatprintf(sdsempty(), "%.*s", MAX_WORKER_TITLE, titleptr);
 
         if (strlen(titleptr) > MAX_WORKER_TITLE)
             te_log(WARN, "The worker title (%s) was too long and truncated", titleptr);
     }
 
     free(titleptr);
+
+    return newtitle;
 }
 
 void te_alloc_buffer(__attribute__((unused)) uv_handle_t *handle, size_t size, uv_buf_t *buffer)
@@ -254,9 +257,9 @@ int main(int argc, char *argv[])
     uv_tcp_t server;
     uv_timer_t stale_timer;
 
-    te_update_worker_title();
-    te_initproctitle(argc, argv);
-    te_setproctitle("tcp-echo", "worker");
+    title = te_worker_title();
+    uv_setup_args(argc, argv);
+    uv_set_process_title("tcp-echo-worker");
 
     te_log(INFO, "Worker created");
 
@@ -291,7 +294,6 @@ int main(int argc, char *argv[])
     te_log(INFO, "All done");
 
     sdsfree(title);
-    te_freeproctitle();
 
     return 0;
 }
