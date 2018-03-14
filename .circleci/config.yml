@@ -1,80 +1,43 @@
 version: 2
 jobs:
-  build_centos:
+  test_centos_clang:
     docker:
-      - image: centos:7
+      - image: circleci/python
     steps:
-      - run:
-          command: |
-            yum -y install \
-              automake \
-              cmake \
-              gcc \
-              gcc-c++ \
-              git \
-              libtool \
-              make
       - checkout
-      - run: mkdir build
-      - run:
-          command: cmake ..
-          working_directory: build
-      - run:
-          command: make
-          working_directory: build
-  build_centos_clang:
+      - setup_remote_docker
+      - run: docker build --target test -t tcp-echo-test --build-arg CI=${CI} --build-arg CC=/usr/bin/clang --build-arg CXX=/usr/bin/clang++ .
+      - run: ./test.sh
+  test_centos_gcc:
     docker:
-      - image: centos:7
+      - image: circleci/python
     steps:
-      - run:
-          command: |
-            yum -y install \
-              automake \
-              clang \
-              cmake \
-              gcc \
-              gcc-c++ \
-              git \
-              libtool \
-              make
       - checkout
-      - run: mkdir build
-      - run:
-          command: cmake ..
-          environment:
-            - CC: /usr/bin/clang
-            - CXX: /usr/bin/clang++
-          working_directory: build
-      - run:
-          command: make
-          working_directory: build
-  build_ubuntu:
+      - setup_remote_docker
+      - run: docker build --target test -t tcp-echo-test --build-arg CI=${CI} .
+      - run: ./test.sh
+  test_ubuntu_gcc:
     docker:
-      - image: ubuntu:16.04
-    steps:
-      - run: apt-get update
-      - run:
-          command: |
-            apt-get -y --force-yes install \
-              automake \
-              cmake \
-              gcc \
-              g++ \
-              git \
-              libtool \
-              make
-      - checkout
-      - run: mkdir build
-      - run:
-          command: cmake ..
-          working_directory: build
-      - run:
-          command: make
-          working_directory: build
-  docker_push:
-    machine: true
+      - image: circleci/python
     steps:
       - checkout
+      - setup_remote_docker
+      - run: docker build --target test -t tcp-echo-test --build-arg BASE_IMAGE=ubuntu:16.04 --build-arg CI=${CI} .
+      - run: ./test.sh
+  test_ubuntu_clang:
+    docker:
+      - image: circleci/python
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run: docker build --target test -t tcp-echo-test --build-arg BASE_IMAGE=ubuntu:16.04 --build-arg CI=${CI}  --build-arg CC=/usr/bin/clang --build-arg CXX=/usr/bin/clang++ .
+      - run: ./test.sh
+  publish:
+    docker:
+      - image: circleci/python
+    steps:
+      - checkout
+      - setup_remote_docker
       - run: |
           TAG=$(git describe --long | cut -d- -f 1,2 | sed "s/v//g; s/-/./g")
           echo "Building with tag (${TAG})"
@@ -87,23 +50,28 @@ workflows:
   version: 2
   build:
     jobs:
-      - build_centos:
+      - test_centos_clang:
           filters:
             tags:
               only: /^v.*/
-      - build_centos_clang:
+      - test_centos_gcc:
           filters:
             tags:
               only: /^v.*/
-      - build_ubuntu:
+      - test_ubuntu_clang:
           filters:
             tags:
               only: /^v.*/
-      - docker_push:
+      - test_ubuntu_gcc:
+          filters:
+            tags:
+              only: /^v.*/
+      - publish:
           requires:
-            - build_centos
-            - build_centos_clang
-            - build_ubuntu
+            - test_centos_clang
+            - test_centos_gcc
+            - test_ubuntu_clang
+            - test_ubuntu_gcc
           filters:
             branches:
               only: master
