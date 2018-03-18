@@ -9,6 +9,7 @@ fi
 yum install -y \
     automake \
     clang \
+    clang-analyzer \
     cmake \
     gcc \
     gcc-c++ \

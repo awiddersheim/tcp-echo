@@ -6,7 +6,15 @@ jobs:
     steps:
       - checkout
       - setup_remote_docker
-      - run: docker build --target test -t tcp-echo-test --build-arg CI=${CI} --build-arg CC=/usr/bin/clang --build-arg CXX=/usr/bin/clang++ .
+      - run: |
+          docker build \
+              --target test \
+              --tag tcp-echo-test \
+              --build-arg ANALYZER=scan-build \
+              --build-arg CI=${CI} \
+              --build-arg CC=/usr/bin/clang \
+              --build-arg CXX=/usr/bin/clang++ \
+              .
       - run: ./test.sh
   test_centos_gcc:
     docker:
@@ -14,7 +22,12 @@ jobs:
     steps:
       - checkout
       - setup_remote_docker
-      - run: docker build --target test -t tcp-echo-test --build-arg CI=${CI} .
+      - run: |
+          docker build \
+              --target test \
+              --tag tcp-echo-test \
+              --build-arg CI=${CI} \
+              .
       - run: ./test.sh
   test_ubuntu_gcc:
     docker:
@@ -22,7 +35,13 @@ jobs:
     steps:
       - checkout
       - setup_remote_docker
-      - run: docker build --target test -t tcp-echo-test --build-arg BASE_IMAGE=ubuntu:16.04 --build-arg CI=${CI} .
+      - run: |
+          docker build \
+              --target test \
+              --tag tcp-echo-test \
+              --build-arg BASE_IMAGE=ubuntu:16.04 \
+              --build-arg CI=${CI} \
+              .
       - run: ./test.sh
   test_ubuntu_clang:
     docker:
@@ -30,7 +49,16 @@ jobs:
     steps:
       - checkout
       - setup_remote_docker
-      - run: docker build --target test -t tcp-echo-test --build-arg BASE_IMAGE=ubuntu:16.04 --build-arg CI=${CI}  --build-arg CC=/usr/bin/clang --build-arg CXX=/usr/bin/clang++ .
+      - run: |
+          docker build \
+              --target test \
+              --tag tcp-echo-test \
+              --build-arg ANALYZER=scan-build \
+              --build-arg BASE_IMAGE=ubuntu:16.04 \
+              --build-arg CI=${CI} \
+              --build-arg CC=/usr/bin/clang \
+              --build-arg CXX=/usr/bin/clang++ \
+              .
       - run: ./test.sh
   publish:
     docker:

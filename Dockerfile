@@ -23,6 +23,7 @@ CMD ["sleep", "infinity"]
 # Build
 FROM dev as build
 
+ARG ANALYZER
 ARG CC
 ARG CXX
 ARG CI
@@ -32,7 +33,7 @@ COPY . /tcp-echo
 WORKDIR /build
 
 RUN cmake /tcp-echo
-RUN make -j4
+RUN ${ANALYZER} make -j4
 
 
 # Test
