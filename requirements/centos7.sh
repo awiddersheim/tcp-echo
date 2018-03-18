@@ -1,8 +1,8 @@
-#!/bin/bash
+#!/bin/sh
 
-set -xeo pipefail
+set -xe
 
-if [ ! -x /bin/rpm ] || [ $(rpm --eval "%{centos_ver}") != "7" ]; then
+if [ "$(grep -c 'CentOS Linux 7' /etc/os-release)" == "0" ]; then
     exit 0
 fi
 

@@ -1,6 +1,6 @@
-#!/bin/bash
+#!/bin/sh
 
-set -xeo pipefail
+set -xe
 
 if [ "$(grep -c 'xenial' /etc/os-release)" == "0" ]; then
     exit 0

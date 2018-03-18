@@ -5,11 +5,39 @@ set +e
 DATA="FOO"
 RESULT=0
 
+usage() {
+cat << EOF
+Usage: $0 [OPTIONS]
+
+Options:
+    --no-memcheck: Disable memory checking
+EOF
+
+    exit 1
+}
+
+for opt in "$@"; do
+    shift
+
+    case "${opt}" in
+        --no-memcheck)
+            NO_MEMCHECK=true
+            ;;
+        *)
+            usage
+            ;;
+    esac
+done
+
+if [ -z ${NO_MEMCHECK} ]; then
+    COMMAND+="valgrind --error-exitcode=1 --leak-check=full --show-leak-kinds=all --track-origins=yes --trace-children=yes"
+fi
+
 docker run \
     --name tcp-echo-test \
     --rm \
     tcp-echo-test \
-    /bin/bash -c "valgrind --error-exitcode=1 --leak-check=full --show-leak-kinds=all --track-origins=yes --trace-children=yes ./tcp-echo-master" &
+    /bin/bash -c "${COMMAND} ./tcp-echo-master" &
 
 for i in {1..30}; do
     RETURNED_DATA=$(docker exec tcp-echo-test /bin/bash -c "echo ${DATA}| nc -w 1 localhost 8090" 2> /dev/null)

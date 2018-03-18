@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=centos:7
+ARG BASE_IMAGE=alpine:3.7
 
 # Development
 FROM ${BASE_IMAGE} as dev
@@ -41,7 +41,7 @@ RUN ${ANALYZER} make ${MAKE_OPTS}
 # Test
 FROM build as test
 
-RUN useradd tcp-echo
+RUN adduser -D tcp-echo || useradd tcp-echo
 
 USER tcp-echo
 
@@ -49,7 +49,7 @@ USER tcp-echo
 # Production
 FROM ${BASE_IMAGE} as prod
 
-RUN useradd tcp-echo
+RUN adduser -D tcp-echo || useradd tcp-echo
 
 COPY --from=build /build/tcp-echo-master /build/tcp-echo-worker /tcp-echo/
 

@@ -5,6 +5,8 @@ services:
     build:
       context: .
       target: dev
+      args:
+        - BASE_IMAGE=centos:7
     image: tcp-echo-dev
     volumes:
       - .:/tcp-echo

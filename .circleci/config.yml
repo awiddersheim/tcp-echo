@@ -1,5 +1,34 @@
 version: 2
 jobs:
+  test_alpine_clang:
+    docker:
+      - image: circleci/python
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run: |
+          docker build \
+              --target test \
+              --tag tcp-echo-test \
+              --build-arg ANALYZER=scan-build \
+              --build-arg CI=${CI} \
+              --build-arg CC=/usr/bin/clang \
+              --build-arg CXX=/usr/bin/clang++ \
+              .
+      - run: ./test.sh --no-memcheck
+  test_alpine_gcc:
+    docker:
+      - image: circleci/python
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run: |
+          docker build \
+              --target test \
+              --tag tcp-echo-test \
+              --build-arg CI=${CI} \
+              .
+      - run: ./test.sh --no-memcheck
   test_centos_clang:
     docker:
       - image: circleci/python
@@ -11,6 +40,7 @@ jobs:
               --target test \
               --tag tcp-echo-test \
               --build-arg ANALYZER=scan-build \
+              --build-arg BASE_IMAGE=centos:7 \
               --build-arg CI=${CI} \
               --build-arg CC=/usr/bin/clang \
               --build-arg CXX=/usr/bin/clang++ \
@@ -26,6 +56,7 @@ jobs:
           docker build \
               --target test \
               --tag tcp-echo-test \
+              --build-arg BASE_IMAGE=centos:7 \
               --build-arg CI=${CI} \
               .
       - run: ./test.sh
@@ -78,6 +109,14 @@ workflows:
   version: 2
   build:
     jobs:
+      - test_alpine_clang:
+          filters:
+            tags:
+              only: /^v.*/
+      - test_alpine_gcc:
+          filters:
+            tags:
+              only: /^v.*/
       - test_centos_clang:
           filters:
             tags:
@@ -96,6 +135,8 @@ workflows:
               only: /^v.*/
       - publish:
           requires:
+            - test_alpine_clang
+            - test_alpine_gcc
             - test_centos_clang
             - test_centos_gcc
             - test_ubuntu_clang
