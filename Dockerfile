@@ -27,13 +27,15 @@ ARG ANALYZER
 ARG CC
 ARG CXX
 ARG CI
+ARG CMAKE_OPTS
+ARG MAKE_OPTS=-j4
 
 COPY . /tcp-echo
 
 WORKDIR /build
 
-RUN cmake /tcp-echo
-RUN ${ANALYZER} make -j4
+RUN cmake ${CMAKE_OPTS} /tcp-echo
+RUN ${ANALYZER} make ${MAKE_OPTS}
 
 
 # Test
