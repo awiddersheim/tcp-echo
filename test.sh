@@ -38,4 +38,4 @@ fi
 
 wait $!
 
-exit ${RESULT}
+exit $(($? + ${RESULT}))
