@@ -10,7 +10,7 @@ int te_set_worker_process_title(sds worker_id)
 {
     int result;
 
-    if (worker_id == NULL) {
+    if (sdslen(worker_id) == 0) {
         result = te_set_process_title("tcp-echo[wrk]");
     } else {
         result = te_set_process_title("tcp-echo[wrk%s]", worker_id);
@@ -23,7 +23,7 @@ char *te_set_worker_title(char *worker_id)
 {
     sds title;
 
-    if (worker_id == NULL) {
+    if (sdslen(worker_id) == 0) {
         title = te_set_title("worker-%d", uv_os_getpid());
     } else {
         title = te_set_title("worker-%s", worker_id);

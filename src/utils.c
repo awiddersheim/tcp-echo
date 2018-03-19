@@ -74,17 +74,18 @@ void te_close_loop(uv_loop_t *loop)
 sds te_os_getenv(const char *name)
 {
     sds ptr;
-    size_t size = 1;
+    size_t size = 2;
 
-    ptr = sdsnewlen("", 1);
+    ptr = sdsnewlen("", size);
 
     if ((uv_os_getenv(name, ptr, &size) == UV_ENOBUFS)) {
         ptr = sdsgrowzero(ptr, size);
 
         uv_os_getenv(name, ptr, &size);
     } else {
-        sdsfree(ptr);
-        ptr = NULL;
+        ptr[0] = '\0';
+
+        sdsupdatelen(ptr);
     }
 
     return ptr;
