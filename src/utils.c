@@ -71,25 +71,23 @@ void te_close_loop(uv_loop_t *loop)
         te_log(WARN, "Could not cleanly close loop");
 }
 
-int te_os_getenv(const char *name, char **var)
+sds te_os_getenv(const char *name)
 {
-    int result;
-    char *envptr;
+    sds ptr;
     size_t size = 1;
 
-    envptr = te_malloc(size);
+    ptr = sdsnewlen("", 1);
 
-    result = uv_os_getenv(name, envptr, &size);
+    if ((uv_os_getenv(name, ptr, &size) == UV_ENOBUFS)) {
+        ptr = sdsgrowzero(ptr, size);
 
-    if (result == UV_ENOBUFS) {
-        envptr = te_realloc(envptr, size);
-
-        result = uv_os_getenv(name, envptr, &size);
+        uv_os_getenv(name, ptr, &size);
+    } else {
+        sdsfree(ptr);
+        ptr = NULL;
     }
 
-    *var = envptr;
-
-    return result;
+    return ptr;
 }
 
 void te_signal_recv(uv_signal_t *handle, int signal)
@@ -198,4 +196,16 @@ sds te_getpeername(uv_tcp_t *handle)
             peer = sdscatprintf(sdsempty(), "%s:%d", buffer, ntohs(addr.sin_port));
 
     return peer;
+}
+
+int te_set_process_title(const char *fmt, ...)
+{
+    va_list args;
+    char buffer[16];
+
+    va_start(args, fmt);
+    vsnprintf(buffer, sizeof(buffer), fmt, args);
+    va_end(args);
+
+    return uv_set_process_title(buffer);
 }

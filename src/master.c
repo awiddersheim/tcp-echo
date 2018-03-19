@@ -30,17 +30,22 @@ void te_free_worker(te_worker_t *worker)
     sdsfree(worker->title);
 }
 
-void te_set_worker_env(char ***env, char *name, char *value)
+void te_set_worker_env(char ***env, const char *name, const char *fmt, ...)
 {
     int i;
     char **newenv;
+    va_list args;
 
     for (i = 0; (*env)[i] != NULL; i++)
         continue;
 
     newenv = te_realloc(*env, sizeof(char *) * (i + 2));
 
-    newenv[i] = sdscatprintf(sdsempty(), "%s=%s", name, value);
+    newenv[i] = sdscatprintf(sdsempty(), "%s=", name);
+
+    va_start(args, fmt);
+    newenv[i] = sdscatvprintf(newenv[i], fmt, args);
+    va_end(args);
 
     newenv[++i] = NULL;
 
@@ -131,7 +136,7 @@ void te_init_worker(te_worker_t *worker, int id)
     worker->options.args[1] = NULL;
 
     worker->options.env = te_init_worker_env();
-    te_set_worker_env(&worker->options.env, "WORKER_TITLE", worker->title);
+    te_set_worker_env(&worker->options.env, "TE_WORKER_ID", "%d", worker->id);
 
     worker->options.stdio = te_malloc(sizeof(uv_stdio_container_t) * stdio_count);
     worker->options.stdio_count = stdio_count;
@@ -164,15 +169,15 @@ int te_spawn_worker(uv_loop_t *loop, te_worker_t *worker)
 int te_update_path()
 {
     int result;
-    char *path;
+    sds path;
     sds newpath;
 
-    result = te_os_getenv("PATH", &path);
+    path = te_os_getenv("PATH");
 
     newpath = sdscatprintf(
         sdsempty(),
-        result ? "%s." : "%s:.",
-        result ? "" : path
+        path ? "%s:." : "%s.",
+        path ? path : ""
     );
 
     te_log(DEBUG, "Setting PATH to (%s)", newpath);
@@ -181,7 +186,7 @@ int te_update_path()
         te_log_uv(WARN, result, "Could not setup path");
 
     sdsfree(newpath);
-    free(path);
+    sdsfree(path);
 
     return result;
 }
@@ -202,7 +207,7 @@ int main(int argc, char *argv[])
 
     te_set_title("master");
     uv_setup_args(argc, argv);
-    uv_set_process_title("tcp-echo-master");
+    te_set_process_title("tcp-echo[mastr]");
 
     if ((result = uv_loop_init(&loop)) < 0)
         te_log_uv(FATAL, result, "Could not create master loop");

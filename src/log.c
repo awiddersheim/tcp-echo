@@ -11,7 +11,7 @@ sds te_set_title(const char *fmt, ...)
     va_end(args);
 
     if (sdslen(title) > MAX_WORKER_TITLE) {
-        te_log(WARN, "The worker title (%s) was too long and will be truncated", title);
+        te_log(WARN, "The worker title (%s) was too long and has been truncated", title);
 
         title[MAX_WORKER_TITLE] = '\0';
 

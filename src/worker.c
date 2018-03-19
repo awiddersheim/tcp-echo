@@ -6,19 +6,28 @@ typedef struct {
     te_conn_t *conn;
 } te_write_req_t;
 
-char *te_worker_title()
+int te_set_worker_process_title(sds worker_id)
 {
     int result;
-    sds title;
-    char *titleptr;
 
-    if ((result = te_os_getenv("WORKER_TITLE", &titleptr)) < 0) {
-        title = te_set_title("worker-%d", uv_os_getpid());
+    if (worker_id == NULL) {
+        result = te_set_process_title("tcp-echo[wrk]");
     } else {
-        title = te_set_title("%s", titleptr);
+        result = te_set_process_title("tcp-echo[wrk%s]", worker_id);
     }
 
-    free(titleptr);
+    return result;
+}
+
+char *te_set_worker_title(char *worker_id)
+{
+    sds title;
+
+    if (worker_id == NULL) {
+        title = te_set_title("worker-%d", uv_os_getpid());
+    } else {
+        title = te_set_title("worker-%s", worker_id);
+    }
 
     return title;
 }
@@ -244,6 +253,7 @@ void te_init_server(uv_loop_t *loop, uv_tcp_t *server)
 int main(int argc, char *argv[])
 {
     int result;
+    sds worker_id;
     te_process_t process = {RUNNING, 1};
     uv_loop_t loop;
     uv_signal_t sigquit;
@@ -252,9 +262,11 @@ int main(int argc, char *argv[])
     uv_tcp_t server;
     uv_timer_t stale_timer;
 
-    te_worker_title();
+    worker_id = te_os_getenv("TE_WORKER_ID");
+
+    te_set_worker_title(worker_id);
     uv_setup_args(argc, argv);
-    uv_set_process_title("tcp-echo-worker");
+    te_set_worker_process_title(worker_id);
 
     te_log(INFO, "Worker created");
 
@@ -288,6 +300,7 @@ int main(int argc, char *argv[])
 
     te_log(INFO, "All done");
 
+    sdsfree(worker_id);
     te_free_title();
 
     return 0;
