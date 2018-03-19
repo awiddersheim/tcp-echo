@@ -200,7 +200,7 @@ int main(int argc, char *argv[])
     uv_signal_t sigterm;
     uv_signal_t sigint;
 
-    title = sdsnew("master");
+    te_set_title("master");
     uv_setup_args(argc, argv);
     uv_set_process_title("tcp-echo-master");
 
@@ -281,7 +281,7 @@ int main(int argc, char *argv[])
 
     te_log(INFO, "All done");
 
-    sdsfree(title);
+    te_free_title();
 
     return 0;
 }

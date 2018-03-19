@@ -9,23 +9,18 @@ typedef struct {
 char *te_worker_title()
 {
     int result;
-    char *newtitle;
+    sds title;
     char *titleptr;
 
     if ((result = te_os_getenv("WORKER_TITLE", &titleptr)) < 0) {
-        newtitle = sdscatprintf(sdsempty(), "worker-%d", uv_os_getpid());
-
-        te_log_uv(WARN, result, "Could not set worker title");
+        title = te_set_title("worker-%d", uv_os_getpid());
     } else {
-        newtitle = sdscatprintf(sdsempty(), "%.*s", MAX_WORKER_TITLE, titleptr);
-
-        if (strlen(titleptr) > MAX_WORKER_TITLE)
-            te_log(WARN, "The worker title (%s) was too long and truncated", titleptr);
+        title = te_set_title("%s", titleptr);
     }
 
     free(titleptr);
 
-    return newtitle;
+    return title;
 }
 
 void te_alloc_buffer(__attribute__((unused)) uv_handle_t *handle, size_t size, uv_buf_t *buffer)
@@ -257,7 +252,7 @@ int main(int argc, char *argv[])
     uv_tcp_t server;
     uv_timer_t stale_timer;
 
-    title = te_worker_title();
+    te_worker_title();
     uv_setup_args(argc, argv);
     uv_set_process_title("tcp-echo-worker");
 
@@ -293,7 +288,7 @@ int main(int argc, char *argv[])
 
     te_log(INFO, "All done");
 
-    sdsfree(title);
+    te_free_title();
 
     return 0;
 }

@@ -3,8 +3,6 @@
 
 #include "tcp-echo.h"
 
-sds title;
-
 typedef enum {
     DEBUG = 1,
     INFO  = 2,
@@ -20,6 +18,10 @@ static const char *log_levels[] = {
     "ERROR",
     "FATAL"
 };
+
+sds te_set_title(const char *fmt, ...);
+sds te_get_title();
+void te_free_title();
 
 #define te__log(lvl, fmt, ...) do {\
     if (lvl < LOG_LEVEL) \
@@ -40,7 +42,7 @@ static const char *log_levels[] = {
 #define te__log_helper2(__VA_ARGS__) te__log(__VA_ARGS_)
 #endif
 
-#define te__log_helper(lvl, fmt, ...) te__log_helper2(lvl, "[%s] (%s)(%d): " fmt "\n%s", timestamp, log_levels[lvl - 1], title, uv_os_getpid(), __VA_ARGS__);
+#define te__log_helper(lvl, fmt, ...) te__log_helper2(lvl, "[%s] (%s)(%d): " fmt "\n%s", timestamp, log_levels[lvl - 1], te_get_title(), uv_os_getpid(), __VA_ARGS__);
 #define te_log(...) te__log_helper(__VA_ARGS__, "")
 
 #define te__log_errno_helper(lvl, fmt, ...) do {\
