@@ -1,1 +1,8 @@
-.gitignore
+*.swp
+*.swo
+build
+config.h
+Dockerfile
+docker-compose*.yml
+.circleci
+.git
