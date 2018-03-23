@@ -189,23 +189,6 @@ void te_on_stale_timer(uv_timer_t *timer)
     uv_walk(timer->loop, te_on_stale_walk, NULL);
 }
 
-void te_on_parent_timer(uv_timer_t *timer)
-{
-    pid_t pid;
-
-    te_process_t *process = (te_process_t *) timer->loop->data;
-
-    pid = getppid();
-
-    if (pid == 0 || pid == 1) {
-        uv_stop(timer->loop);
-
-        process->state = STOPPING;
-
-        uv_close((uv_handle_t *) timer, NULL);
-    }
-}
-
 void te_on_connection(uv_stream_t *server, int status)
 {
     int fd;
@@ -278,7 +261,6 @@ int main(int argc, char *argv[])
     uv_signal_t sigint;
     uv_tcp_t server;
     uv_timer_t stale_timer;
-    uv_timer_t parent_timer;
 
     worker_id = te_os_getenv("TE_WORKER_ID");
 
@@ -305,15 +287,7 @@ int main(int argc, char *argv[])
         &stale_timer,
         te_on_stale_timer,
         CONNECTION_TIMEOUT * 1000,
-        3000
-    );
-
-    uv_timer_init(&loop, &parent_timer);
-    uv_timer_start(
-        &parent_timer,
-        te_on_parent_timer,
-        0,
-        1000
+        CONNECTION_TIMEOUT * 1000
     );
 
     te_init_server(&loop, &server);
