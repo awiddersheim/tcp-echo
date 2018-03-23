@@ -41,7 +41,7 @@ RUN ${ANALYZER} make ${MAKE_OPTS}
 # Test
 FROM build as test
 
-RUN adduser -D tcp-echo || useradd tcp-echo
+RUN adduser -D tcp-echo > /dev/null 2>&1 || useradd tcp-echo
 
 USER tcp-echo
 
@@ -49,7 +49,7 @@ USER tcp-echo
 # Production
 FROM ${BASE_IMAGE} as prod
 
-RUN adduser -D tcp-echo || useradd tcp-echo
+RUN adduser -D tcp-echo > /dev/null 2>&1 || useradd tcp-echo
 
 COPY --from=build /build/tcp-echo-master /build/tcp-echo-worker /tcp-echo/
 
