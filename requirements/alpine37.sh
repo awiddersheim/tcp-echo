@@ -2,7 +2,9 @@
 
 set -xe
 
-if [ "$(grep -c 'Alpine Linux v3.7' /etc/os-release)" == "0" ]; then
+source /etc/os-release
+
+if [ "${ID}" != "alpine" ] || [ "${VERSION_ID}" != "3.7.0" ]; then
     exit 0
 fi
 

@@ -2,7 +2,9 @@
 
 set -xe
 
-if [ "$(grep -c 'xenial' /etc/os-release)" == "0" ]; then
+source /etc/os-release
+
+if [ "${ID}" != "ubuntu" ] || [ "${VERSION_ID}" != "16.04" ]; then
     exit 0
 fi
 

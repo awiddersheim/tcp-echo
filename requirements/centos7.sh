@@ -2,7 +2,9 @@
 
 set -xe
 
-if [ "$(grep -c 'CentOS Linux 7' /etc/os-release)" == "0" ]; then
+source /etc/os-release
+
+if [ "${ID}" != "centos" ] || [ "${VERSION_ID}" != "7" ]; then
     exit 0
 fi
 
