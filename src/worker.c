@@ -6,32 +6,6 @@ typedef struct {
     te_conn_t *conn;
 } te_write_req_t;
 
-int te_set_worker_process_title(sds worker_id)
-{
-    int result;
-
-    if (!sdslen(worker_id)) {
-        result = te_set_process_title("tcp-echo[wrk]");
-    } else {
-        result = te_set_process_title("tcp-echo[wrk%s]", worker_id);
-    }
-
-    return result;
-}
-
-char *te_set_worker_title(char *worker_id)
-{
-    sds title;
-
-    if (!sdslen(worker_id)) {
-        title = te_set_title("worker-%d", uv_os_getpid());
-    } else {
-        title = te_set_title("worker-%s", worker_id);
-    }
-
-    return title;
-}
-
 void te_alloc_buffer(__attribute__((unused)) uv_handle_t *handle, size_t size, uv_buf_t *buffer)
 {
     *buffer = uv_buf_init((char *) te_malloc(size), size);
@@ -272,6 +246,32 @@ void te_init_server(uv_loop_t *loop, uv_tcp_t *server)
 
     if ((result = uv_listen((uv_stream_t *) server, CONNECTION_BACKLOG, te_on_connection)) < 0)
         te_log_uv(FATAL, result, "Could not listen for connections on (%d)", PORT_NUMBER);
+}
+
+int te_set_worker_process_title(sds worker_id)
+{
+    int result;
+
+    if (!sdslen(worker_id)) {
+        result = te_set_process_title("tcp-echo[wrk]");
+    } else {
+        result = te_set_process_title("tcp-echo[wrk%s]", worker_id);
+    }
+
+    return result;
+}
+
+char *te_set_worker_title(char *worker_id)
+{
+    sds title;
+
+    if (!sdslen(worker_id)) {
+        title = te_set_title("worker-%d", uv_os_getpid());
+    } else {
+        title = te_set_title("worker-%s", worker_id);
+    }
+
+    return title;
 }
 
 void te_update_parent_pid(te_process_t *process)
