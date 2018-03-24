@@ -3,9 +3,6 @@
  */
 #define WORKERS 0
 
-/* Number of connection handlers per worker */
-#define HANDLERS 10
-
 /* Port number to listen on */
 #define PORT_NUMBER 8090
 
