@@ -2,7 +2,7 @@
 
 set -xe
 
-source /etc/os-release
+. /etc/os-release
 
 if [ "${ID}" != "alpine" ] || [ "${VERSION_ID}" != "3.7.0" ]; then
     exit 0

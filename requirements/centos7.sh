@@ -2,7 +2,7 @@
 
 set -xe
 
-source /etc/os-release
+. /etc/os-release
 
 if [ "${ID}" != "centos" ] || [ "${VERSION_ID}" != "7" ]; then
     exit 0

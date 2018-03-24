@@ -2,7 +2,7 @@
 
 set -xe
 
-source /etc/os-release
+. /etc/os-release
 
 if [ "${ID}" != "ubuntu" ] || [ "${VERSION_ID}" != "16.04" ]; then
     exit 0
