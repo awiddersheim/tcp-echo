@@ -32,6 +32,7 @@ typedef enum {
 typedef struct {
     te_process_state_t state;
     int is_worker;
+    uv_pid_t ppid;
 } te_process_t;
 
 typedef struct {

@@ -137,6 +137,7 @@ void te_init_worker(te_worker_t *worker, int id)
 
     worker->options.env = te_init_worker_env();
     te_set_worker_env(&worker->options.env, "TE_WORKER_ID", "%d", worker->id);
+    te_set_worker_env(&worker->options.env, "TE_MASTER_PID", "%d", uv_os_getpid());
 
     worker->options.stdio = te_malloc(sizeof(uv_stdio_container_t) * stdio_count);
     worker->options.stdio_count = stdio_count;
@@ -199,7 +200,7 @@ int main(int argc, char *argv[])
     int worker_count;
     te_worker_t *workers;
     uv_cpu_info_t *cpu_info;
-    te_process_t process = {RUNNING, 0};
+    te_process_t process = {RUNNING, 0, uv_os_getppid()};
     uv_loop_t loop;
     uv_signal_t sigquit;
     uv_signal_t sigterm;
