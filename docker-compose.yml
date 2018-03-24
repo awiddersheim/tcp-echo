@@ -2,7 +2,6 @@ version: "3.4"
 
 services:
   tcp-echo:
-    build: .
     image: awiddersheim/tcp-echo
     ports:
       - 127.0.0.1:8090:8090
