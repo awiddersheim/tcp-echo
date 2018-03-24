@@ -51,7 +51,7 @@ FROM ${BASE_IMAGE} as prod
 
 RUN adduser -D tcp-echo > /dev/null 2>&1 || useradd tcp-echo
 
-COPY --from=build /build/tcp-echo-master /build/tcp-echo-worker /tcp-echo/
+COPY --from=build /tcp-echo/LICENSE /build/tcp-echo-master /build/tcp-echo-worker /tcp-echo/
 
 WORKDIR /tcp-echo
 
