@@ -293,7 +293,7 @@ int main(int argc, char *argv[])
 {
     int result;
     sds worker_id;
-    te_process_t process = {RUNNING, 1, uv_os_getppid()};
+    te_process_t process = {RUNNING, 1, uv_os_getppid(), 0};
     uv_loop_t loop;
     uv_signal_t sigquit;
     uv_signal_t sigterm;

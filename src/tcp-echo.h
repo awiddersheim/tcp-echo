@@ -33,6 +33,7 @@ typedef struct {
     te_process_state_t state;
     int is_worker;
     uv_pid_t ppid;
+    int workers_reaped;
 } te_process_t;
 
 typedef struct {

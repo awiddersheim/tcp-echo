@@ -2,8 +2,6 @@
 
 extern char **environ;
 
-static volatile int workers_reaped;
-
 typedef struct worker {
     uv_process_t child;
     uv_process_options_t options;
@@ -103,7 +101,7 @@ void te_on_worker_close(uv_handle_t *handle)
     } else {
         te_free_worker(worker);
 
-        workers_reaped++;
+        process->workers_reaped++;
     }
 }
 
@@ -200,7 +198,7 @@ int main(int argc, char *argv[])
     int worker_count;
     te_worker_t *workers;
     uv_cpu_info_t *cpu_info;
-    te_process_t process = {RUNNING, 0, uv_os_getppid()};
+    te_process_t process = {RUNNING, 0, uv_os_getppid(), 0};
     uv_loop_t loop;
     uv_signal_t sigquit;
     uv_signal_t sigterm;
@@ -269,7 +267,7 @@ int main(int argc, char *argv[])
         uv_kill(workers[i].pid, SIGTERM);
     }
 
-    while (process.state != KILLED && worker_count > workers_reaped)
+    while (process.state != KILLED && worker_count > process.workers_reaped)
         uv_run(&loop, UV_RUN_ONCE);
 
     if (process.state == KILLED) {
@@ -277,7 +275,7 @@ int main(int argc, char *argv[])
             WARN,
             "Master was killed before stopping all (%d) workers, only stopped (%d)",
             worker_count,
-            workers_reaped
+            process.workers_reaped
         );
     } else {
         free(workers);
