@@ -20,7 +20,7 @@ void te_close_loop(uv_loop_t *loop);
 
 #define te_malloc(x) te__malloc(x, __FILE__, __LINE__)
 #define te_realloc(x, y) te__realloc(x, y, __FILE__, __LINE__)
-#define te_calloc(x) te__calloc(x, y, __FILE__, __LINE__)
+#define te_calloc(x, y) te__calloc(x, y, __FILE__, __LINE__)
 
 static __inline void *te__malloc(size_t size, const char *file, int line)
 {

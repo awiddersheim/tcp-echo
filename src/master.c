@@ -25,6 +25,7 @@ void te_free_worker(te_worker_t *worker)
     free(worker->options.env);
     free(worker->options.stdio);
     free(worker->options.args);
+    free(worker->options.cpumask);
     sdsfree(worker->title);
 }
 
@@ -116,9 +117,10 @@ void te_on_worker_exit(uv_process_t *process, int64_t status, int signal)
     uv_close((uv_handle_t *) process, te_on_worker_close);
 }
 
-void te_init_worker(te_worker_t *worker, int id)
+void te_init_worker(te_worker_t *worker, int id, int cpu)
 {
     int stdio_count = 3;
+    int cpumask_size;
 
     memset(worker, 0x0, sizeof(te_worker_t));
 
@@ -141,9 +143,16 @@ void te_init_worker(te_worker_t *worker, int id)
     worker->options.stdio_count = stdio_count;
     worker->options.stdio[0].flags = UV_IGNORE;
     worker->options.stdio[1].flags = UV_INHERIT_FD;
-    worker->options.stdio[1].data.fd = 1;
+    worker->options.stdio[1].data.file = 1;
     worker->options.stdio[2].flags = UV_INHERIT_FD;
-    worker->options.stdio[2].data.fd = 2;
+    worker->options.stdio[2].data.file = 2;
+
+    if (cpu >= 0  && (cpumask_size = uv_cpumask_size()) >= 0) {
+        worker->options.cpumask = te_calloc(cpumask_size, sizeof(char *));
+
+        worker->options.cpumask[cpu] = 1;
+        worker->options.cpumask_size =cpumask_size;
+    }
 }
 
 int te_spawn_worker(uv_loop_t *loop, te_worker_t *worker)
@@ -192,7 +201,7 @@ int te_update_path()
 
 int main(int argc, char *argv[])
 {
-    int i;
+    int i, j;
     int result;
     int cpu_count;
     int worker_count;
@@ -239,14 +248,17 @@ int main(int argc, char *argv[])
 
     workers = te_malloc(sizeof(te_worker_t) * worker_count);
 
-    /* TODO(awiddersheim) Schedule CPU affinity per worker */
-    for (i = 0; i < worker_count;) {
-        te_init_worker(&workers[i], i + 1);
+    for (i = 0, j = 0; i < worker_count;) {
+        te_init_worker(&workers[i], i + 1, j);
 
         if (te_spawn_worker(&loop, &workers[i]))
             continue;
 
+        j++;
         i++;
+
+        if (j >= cpu_count)
+            j = 0;
     }
 
     te_log(INFO, "Listening on 0.0.0.0:%d", PORT_NUMBER);
