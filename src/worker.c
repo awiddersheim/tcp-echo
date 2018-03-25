@@ -21,7 +21,7 @@ te_tcp_type_t *te_init_tcp_type(te_tcp_type_t type)
     return type_ptr;
 }
 
-te_conn_t *te_init_conn(uv_loop_t *loop)
+te_conn_t *te_init_connection(uv_loop_t *loop)
 {
     te_conn_t *conn;
 
@@ -66,7 +66,7 @@ void te_on_echo_write(uv_write_t *request, int status)
     free_write_request(write_request);
 }
 
-void te_on_conn_timeout(uv_write_t *request, int status)
+void te_on_connection_timeout(uv_write_t *request, int status)
 {
     int fd;
     te_write_req_t *write_request = (te_write_req_t *) request;
@@ -82,7 +82,7 @@ void te_on_conn_timeout(uv_write_t *request, int status)
     if (!uv_is_closing((uv_handle_t *) write_request->conn)) {
         te_log(INFO, "Closing connection from (%s)", write_request->conn->peer);
 
-        uv_close((uv_handle_t *) write_request->conn, te_on_conn_close);
+        uv_close((uv_handle_t *) write_request->conn, te_on_connection_close);
     }
 
     free_write_request(write_request);
@@ -116,7 +116,7 @@ void te_on_echo_read(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buffer)
             te_log(INFO, "Connection closed by (%s)", conn->peer);
         }
 
-        uv_close((uv_handle_t *) conn, te_on_conn_close);
+        uv_close((uv_handle_t *) conn, te_on_connection_close);
     }
 
     free(buffer->base);
@@ -153,7 +153,7 @@ void te_on_stale_walk(uv_handle_t *handle, __attribute__((unused)) void *arg)
             (uv_stream_t *) conn,
             &write_request->buffer,
             1,
-            te_on_conn_timeout
+            te_on_connection_timeout
         );
     }
 }
@@ -198,7 +198,7 @@ void te_on_connection(uv_stream_t *server, int status)
         return;
     }
 
-    conn = te_init_conn(server->loop);
+    conn = te_init_connection(server->loop);
 
     if ((result = uv_accept(server, (uv_stream_t *) conn)) >= 0) {
         conn->peer = te_getpeername((uv_tcp_t *) conn);
@@ -213,7 +213,7 @@ void te_on_connection(uv_stream_t *server, int status)
     } else {
         te_log_uv(ERROR, result, "Could not accept new connection");
 
-        uv_close((uv_handle_t *) conn, te_on_conn_close);
+        uv_close((uv_handle_t *) conn, te_on_connection_close);
     }
 }
 

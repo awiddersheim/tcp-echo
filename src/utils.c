@@ -5,7 +5,7 @@ void te_on_server_close(uv_handle_t *handle)
     free(handle->data);
 }
 
-void te_on_conn_close(uv_handle_t *handle)
+void te_on_connection_close(uv_handle_t *handle)
 {
     te_conn_t *conn = (te_conn_t *) handle;
 
@@ -14,7 +14,7 @@ void te_on_conn_close(uv_handle_t *handle)
     free(conn);
 }
 
-void te_on_conn_shutdown(uv_shutdown_t *shutdown_request, int status)
+void te_on_connection_shutdown(uv_shutdown_t *shutdown_request, int status)
 {
     te_conn_t *conn = (te_conn_t *) shutdown_request->handle;
 
@@ -24,7 +24,7 @@ void te_on_conn_shutdown(uv_shutdown_t *shutdown_request, int status)
     if (!uv_is_closing((uv_handle_t *) shutdown_request->handle)) {
         te_log(INFO, "Closing connection from (%s)", conn->peer);
 
-        uv_close((uv_handle_t *) shutdown_request->handle, te_on_conn_close);
+        uv_close((uv_handle_t *) shutdown_request->handle, te_on_connection_close);
     }
 }
 
@@ -45,7 +45,7 @@ void te_on_loop_close(uv_handle_t *handle, __attribute__((unused)) void *arg)
                 uv_shutdown(
                     &((te_conn_t *) handle)->shutdown,
                     (uv_stream_t *) handle,
-                    te_on_conn_shutdown
+                    te_on_connection_shutdown
                 );
             } else {
                 uv_close(handle, te_on_server_close);

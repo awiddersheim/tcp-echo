@@ -14,7 +14,7 @@ int te_set_process_title(const char *fmt, ...);
 void te_set_libuv_allocator();
 
 void te_on_server_close(uv_handle_t *handle);
-void te_on_conn_close(uv_handle_t *handle);
+void te_on_connection_close(uv_handle_t *handle);
 void te_on_loop_close(uv_handle_t *handle, void *arg);
 void te_close_loop(uv_loop_t *loop);
 
