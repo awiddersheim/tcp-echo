@@ -201,8 +201,9 @@ int te_update_path()
 
 int main(int argc, char *argv[])
 {
-    int i, j;
+    int i;
     int result;
+    int cpu;
     int cpu_count;
     int worker_count;
     te_worker_t *workers;
@@ -248,17 +249,18 @@ int main(int argc, char *argv[])
 
     workers = te_malloc(sizeof(te_worker_t) * worker_count);
 
-    for (i = 0, j = 0; i < worker_count;) {
-        te_init_worker(&workers[i], i + 1, j);
+    for (i = 0, cpu = 0; i < worker_count;) {
+        te_init_worker(&workers[i], i + 1, cpu);
 
         if (te_spawn_worker(&loop, &workers[i]))
             continue;
 
-        j++;
-        i++;
+        cpu++;
 
-        if (j >= cpu_count)
-            j = 0;
+        if (cpu >= cpu_count)
+            cpu = 0;
+
+        i++;
     }
 
     te_log(INFO, "Listening on 0.0.0.0:%d", PORT_NUMBER);
