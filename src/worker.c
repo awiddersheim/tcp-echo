@@ -302,6 +302,8 @@ int main(int argc, char *argv[])
     uv_timer_t stale_timer;
     uv_timer_t parent_timer;
 
+    te_set_libuv_allocator();
+
     worker_id = te_os_getenv("TE_WORKER_ID");
 
     te_set_worker_title(worker_id);

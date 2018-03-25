@@ -11,6 +11,7 @@ int te_gettimestamp(char *buffer, size_t size);
 sds te_os_getenv(const char *name);
 void te_signal_recv(uv_signal_t *handle, int signal);
 int te_set_process_title(const char *fmt, ...);
+void te_set_libuv_allocator();
 
 void te_on_server_close(uv_handle_t *handle);
 void te_on_conn_close(uv_handle_t *handle);
@@ -19,6 +20,7 @@ void te_close_loop(uv_loop_t *loop);
 
 #define te_malloc(x) te__malloc(x, __FILE__, __LINE__)
 #define te_realloc(x, y) te__realloc(x, y, __FILE__, __LINE__)
+#define te_calloc(x) te__calloc(x, y, __FILE__, __LINE__)
 
 static __inline void *te__malloc(size_t size, const char *file, int line)
 {
@@ -30,6 +32,11 @@ static __inline void *te__malloc(size_t size, const char *file, int line)
     return ptr;
 }
 
+static __inline void *te__malloc_uv(size_t size)
+{
+    return te__malloc(size, "libuv", 0);
+}
+
 static __inline void *te__realloc(void *oldptr, size_t size, const char *file, int line)
 {
     void *ptr = realloc(oldptr, size);
@@ -38,6 +45,26 @@ static __inline void *te__realloc(void *oldptr, size_t size, const char *file, i
         te_log_errno(FATAL, "Could not re-allocate memory in (%s) on line (%d)", file, line);
 
     return ptr;
+}
+
+static __inline void *te__realloc_uv(void *oldptr, size_t size)
+{
+    return te__realloc(oldptr, size, "libuv", 0);
+}
+
+static __inline void *te__calloc(size_t nelem, size_t size, const char *file, int line)
+{
+    void *ptr = calloc(nelem, size);
+
+    if (ptr == NULL)
+        te_log_errno(FATAL, "Could not zero allocate memory in (%s) on line (%d)", file, line);
+
+    return ptr;
+}
+
+static __inline void *te__calloc_uv(size_t nelem, size_t size)
+{
+    return te__calloc(nelem, size, "libuv", 0);
 }
 
 #endif

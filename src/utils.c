@@ -215,3 +215,11 @@ int te_set_process_title(const char *fmt, ...)
 
     return uv_set_process_title(buffer);
 }
+
+void te_set_libuv_allocator()
+{
+    int result;
+
+    if ((result = uv_replace_allocator(te__malloc_uv, te__realloc_uv, te__calloc_uv, free)) != 0)
+        te_log_uv(FATAL, result, "Could not replace libuv allocators");
+}

@@ -204,6 +204,8 @@ int main(int argc, char *argv[])
     uv_signal_t sigterm;
     uv_signal_t sigint;
 
+    te_set_libuv_allocator();
+
     te_set_title("master");
     uv_setup_args(argc, argv);
     te_set_process_title("tcp-echo[mastr]");
