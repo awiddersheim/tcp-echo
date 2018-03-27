@@ -21,6 +21,8 @@ kernel][nginx-reuseport] using `SO_REUSEPORT`.
   * [Manual](#manual)
 * [Developing](#developing)
 * [Testing](#testing)
+  * [Valgrind](#valgrind)
+  * [Performance](#performance)
 * [Communication](#communication)
 * [Contributing](#contributing)
 
@@ -163,6 +165,37 @@ All of the tests are performed each commit to `master` by
 [CircleCI][circleci]. Once all tests pass in the [pipeline][pipeline], a
 new image is published to [Docker Hub][dockerhub].
 
+### Valgrind
+
+Can invoke Valgrind to test for memory leaks and other memory access
+violations.
+
+```
+$ valgrind \
+    --error-exitcode=1 \
+    --leak-check=full \
+    --show-leak-kinds=all \
+    --track-origins=yes \
+    --trace-children=yes \
+    ./tcp-echo-master
+```
+
+### Performance
+
+Been using [tcpkali][tcpkali] as a way to test throughput and
+performance.
+
+```
+$ tcpkali localhost:8090 \
+    --duration 90 \
+    --dump-one \
+    --connections 500 \
+    --connect-rate 300 \
+    --channel-lifetime 1 \
+    --message foo \
+    --message-rate 2
+```
+
 ## Configuring
 
 There are some configuration options available at build time in
@@ -195,4 +228,5 @@ run time options through environment variables or a configuration file.
 [pipeline]: https://circleci.com/gh/awiddersheim/workflows/tcp-echo/tree/master
 [pthreads]: https://en.wikipedia.org/wiki/POSIX_Threads
 [reuseport]: https://lwn.net/Articles/542629/
+[tcpkali]: https://github.com/satori-com/tcpkali
 [xcode]: https://developer.apple.com/xcode/
