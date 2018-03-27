@@ -47,6 +47,8 @@ list(
 )
 
 if(DEFINED ENV{CI})
+  set(CMAKE_BUILD_TYPE Debug)
+
   list(
     APPEND
     COMPILER_FLAGS

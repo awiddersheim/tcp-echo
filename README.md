@@ -149,6 +149,7 @@ $ docker build \
     --target test \
     --tag tcp-echo-test \
     --build-arg BASE_IMAGE=centos:7 \
+    --build-arg CMAKE_OPTS=-DCMAKE_BUILD_TYPE=Debug \
     .
 ```
 
