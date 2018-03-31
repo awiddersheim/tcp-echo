@@ -29,6 +29,13 @@
  */
 #define CONNECTION_TIMEOUT 10
 
+/* The maximum number of connections a worker can accept before it
+ * shuts down. This isn't all that useful unless a memory leak
+ * develops somewhere. A setting of <= 0 means an unlimited number of
+ * connections will be handled by each worker.
+ */
+#define WORKER_MAX_CONNECTIONS 0
+
 /* The linger timeout after closing client connections */
 #define LINGER_TIMEOUT 10
 

@@ -1,5 +1,21 @@
 #include "tcp-echo.h"
 
+void te_stop_process(uv_loop_t *loop)
+{
+    te_process_t *process = (te_process_t *) loop->data;
+
+    uv_stop(loop);
+
+    switch (process->state) {
+        case PROCESS_RUNNING:
+            process->state = PROCESS_STOPPING;
+            break;
+        default:
+            process->state = PROCESS_KILLED;
+            break;
+    }
+}
+
 void te_on_server_close(uv_handle_t *handle)
 {
     free(handle->data);
@@ -8,6 +24,14 @@ void te_on_server_close(uv_handle_t *handle)
 void te_on_connection_close(uv_handle_t *handle)
 {
     te_conn_t *conn = (te_conn_t *) handle;
+    te_process_t *process = (te_process_t *) handle->loop->data;
+
+    process->current_connections--;
+
+    #if defined(WORKER_MAX_CONNECTIONS) && WORKER_MAX_CONNECTIONS > 0
+    if (process->total_connections >= WORKER_MAX_CONNECTIONS)
+        te_stop_process(handle->loop);
+    #endif
 
     free(conn->client.data);
     sdsfree(conn->peer);
@@ -108,17 +132,7 @@ void te_signal_recv(uv_signal_t *handle, int signal)
                 break;
         case SIGQUIT:
         case SIGTERM:
-            uv_stop(handle->loop);
-
-            switch (process->state) {
-                case RUNNING:
-                    process->state = STOPPING;
-                    break;
-                default:
-                    process->state = KILLED;
-                    break;
-            }
-
+            te_stop_process(handle->loop);
             break;
         default:
             break;
@@ -214,6 +228,15 @@ int te_set_process_title(const char *fmt, ...)
     va_end(args);
 
     return uv_set_process_title(buffer);
+}
+
+void te_init_process(te_process_t *process, int is_worker)
+{
+    memset(process, 0x0, sizeof(te_process_t));
+
+    process->state = PROCESS_RUNNING;
+    process->is_worker = is_worker;
+    process->ppid = uv_os_getppid();
 }
 
 void te_set_libuv_allocator()

@@ -11,7 +11,9 @@ int te_gettimestamp(char *buffer, size_t size);
 sds te_os_getenv(const char *name);
 void te_signal_recv(uv_signal_t *handle, int signal);
 int te_set_process_title(const char *fmt, ...);
-void te_set_libuv_allocator();
+void te_stop_process(uv_loop_t *loop);
+void te_init_process(te_process_t *process, int is_worker);
+void te_set_libuv_allocator(void);
 
 void te_on_server_close(uv_handle_t *handle);
 void te_on_connection_close(uv_handle_t *handle);

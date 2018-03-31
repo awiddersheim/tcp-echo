@@ -179,9 +179,7 @@ void te_on_parent_timer(uv_timer_t *timer)
             ppid
         );
 
-        uv_stop(timer->loop);
-
-        process->state = STOPPING;
+        te_stop_process(timer->loop);
 
         uv_close((uv_handle_t *) timer, NULL);
     }
@@ -192,6 +190,7 @@ void te_on_connection(uv_stream_t *server, int status)
     int fd;
     int result;
     te_conn_t *conn;
+    te_process_t *process = (te_process_t *) server->loop->data;
 
     if (status < 0) {
         te_log_uv(ERROR, status, "Could not handle new connection");
@@ -208,6 +207,14 @@ void te_on_connection(uv_stream_t *server, int status)
         uv_fileno((uv_handle_t *) conn, &fd);
         te_sock_set_linger(fd, 1, LINGER_TIMEOUT);
         te_sock_set_tcp_linger(fd, LINGER_TIMEOUT);
+
+        process->current_connections++;
+        process->total_connections++;
+
+        #if defined(WORKER_MAX_CONNECTIONS) && WORKER_MAX_CONNECTIONS > 0
+        if (process->total_connections >= WORKER_MAX_CONNECTIONS)
+            uv_close((uv_handle_t *) server, te_on_server_close);
+        #endif
 
         uv_read_start((uv_stream_t *) conn, te_alloc_buffer, te_on_echo_read);
     } else {
@@ -293,7 +300,7 @@ int main(int argc, char *argv[])
 {
     int result;
     sds worker_id;
-    te_process_t process = {RUNNING, 1, uv_os_getppid(), 0};
+    te_process_t process;
     uv_loop_t loop;
     uv_signal_t sigquit;
     uv_signal_t sigterm;
@@ -309,6 +316,8 @@ int main(int argc, char *argv[])
     te_set_worker_title(worker_id);
     uv_setup_args(argc, argv);
     te_set_worker_process_title(worker_id);
+
+    te_init_process(&process, 1);
     te_update_parent_pid(&process);
 
     te_log(INFO, "Worker created");

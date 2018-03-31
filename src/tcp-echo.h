@@ -24,9 +24,9 @@
 #include "log.h"
 
 typedef enum {
-    RUNNING,
-    STOPPING,
-    KILLED
+    PROCESS_RUNNING,
+    PROCESS_STOPPING,
+    PROCESS_KILLED
 } te_process_state_t;
 
 typedef struct {
@@ -34,6 +34,8 @@ typedef struct {
     int is_worker;
     uv_pid_t ppid;
     int workers_reaped;
+    int current_connections;
+    int total_connections;
 } te_process_t;
 
 typedef struct {

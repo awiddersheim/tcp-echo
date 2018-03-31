@@ -81,14 +81,14 @@ void te_on_worker_close(uv_handle_t *handle)
     struct timespec wait;
 
     te_log(
-        ((process->state == RUNNING) ? WARN : INFO),
+        ((process->state == PROCESS_RUNNING) ? WARN : INFO),
         "Worker (%s) with pid (%d) exited with (%ld)",
         worker->title,
         worker->pid,
         (long) worker->status
     );
 
-    if (process->state == RUNNING) {
+    if (process->state == PROCESS_RUNNING) {
         /* TODO(awiddersheim): This _could_ block the entire event loop
          * for a while so find a better way to spawn this with retries.
          */
@@ -208,7 +208,7 @@ int main(int argc, char *argv[])
     int worker_count;
     te_worker_t *workers;
     uv_cpu_info_t *cpu_info;
-    te_process_t process = {RUNNING, 0, uv_os_getppid(), 0};
+    te_process_t process;
     uv_loop_t loop;
     uv_signal_t sigquit;
     uv_signal_t sigterm;
@@ -219,6 +219,8 @@ int main(int argc, char *argv[])
     te_set_title("master");
     uv_setup_args(argc, argv);
     te_set_process_title("tcp-echo[mastr]");
+
+    te_init_process(&process, 0);
 
     if ((result = uv_loop_init(&loop)) < 0)
         te_log_uv(FATAL, result, "Could not create master loop");
@@ -283,10 +285,10 @@ int main(int argc, char *argv[])
         uv_kill(workers[i].pid, SIGTERM);
     }
 
-    while (process.state != KILLED && worker_count > process.workers_reaped)
+    while (process.state != PROCESS_KILLED && worker_count > process.workers_reaped)
         uv_run(&loop, UV_RUN_ONCE);
 
-    if (process.state == KILLED) {
+    if (process.state == PROCESS_KILLED) {
         te_log(
             WARN,
             "Master was killed before stopping all (%d) workers, only stopped (%d)",
