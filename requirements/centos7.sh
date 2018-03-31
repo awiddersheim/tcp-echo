@@ -8,7 +8,7 @@ if [ "${ID}" != "centos" ] || [ "${VERSION_ID}" != "7" ]; then
     exit 0
 fi
 
-yum install -y \
+yum install -y --disableplugin=fastestmirror \
     automake \
     clang \
     clang-analyzer \
