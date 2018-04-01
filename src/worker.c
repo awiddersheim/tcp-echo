@@ -6,10 +6,7 @@ typedef struct {
     te_conn_t *conn;
 } te_write_req_t;
 
-void te_alloc_buffer(__attribute__((unused)) uv_handle_t *handle, size_t size, uv_buf_t *buffer)
-{
-    *buffer = uv_buf_init((char *) te_malloc(size), size);
-}
+void te_on_connection(uv_stream_t *server, int status);
 
 te_tcp_type_t *te_init_tcp_type(te_tcp_type_t type)
 {
@@ -35,6 +32,124 @@ te_conn_t *te_init_connection(uv_loop_t *loop)
     conn->client.data = te_init_tcp_type(CLIENT);
 
     return conn;
+}
+
+uv_tcp_t *te_init_server(uv_loop_t *loop)
+{
+    int fd;
+    int result;
+    struct sockaddr_in addr;
+    uv_tcp_t *server;
+
+    server = te_malloc(sizeof(uv_tcp_t));
+
+    uv_tcp_init_ex(loop, server, AF_INET);
+    server->data = te_init_tcp_type(SERVER);
+
+    uv_fileno((uv_handle_t *) server, &fd);
+    te_sock_setreuse_port(fd, 1);
+
+    #ifdef ENABLE_NODELAY
+    if ((result = uv_tcp_nodelay(server, 1)) < 0)
+        te_log_uv(FATAL, result, "Could not set nodelay on socket");
+    #endif
+
+    #ifdef ENABLE_KEEPALIVE
+    if ((result = uv_tcp_keepalive(server, 1, KEEPALIVE_INTERVAL)) < 0)
+        te_log_uv(FATAL, result, "Could not set keepalive on socket");
+    #endif
+
+    uv_ip4_addr("0.0.0.0", PORT_NUMBER, &addr);
+
+    if ((result = uv_tcp_bind(server, (const struct sockaddr *) &addr, 0)) < 0)
+        te_log_uv(FATAL, result, "Could not bind to port (%d)", PORT_NUMBER);
+
+    if ((result = uv_listen((uv_stream_t *) server, CONNECTION_BACKLOG, te_on_connection)) < 0)
+        te_log_uv(FATAL, result, "Could not listen for connections on (%d)", PORT_NUMBER);
+
+    return server;
+}
+
+void te_on_server_close(uv_handle_t *handle)
+{
+    free(handle->data);
+    free(handle);
+}
+
+void te_on_connection_close(uv_handle_t *handle)
+{
+    te_conn_t *conn = (te_conn_t *) handle;
+    te_process_t *process = (te_process_t *) handle->loop->data;
+
+    process->current_connections--;
+
+    #if defined(WORKER_MAX_CONNECTIONS) && WORKER_MAX_CONNECTIONS > 0
+    if (process->total_connections >= WORKER_MAX_CONNECTIONS)
+        te_stop_process(handle->loop);
+    #endif
+
+    #if defined(WORKER_CONNECTIONS) && WORKER_CONNECTIONS > 0
+    if (process->current_connections < WORKER_CONNECTIONS && process->state == PROCESS_PAUSED) {
+        te_log(INFO, "Worker resuming connection handling");
+
+        te_init_server(handle->loop);
+
+        process->state = PROCESS_RUNNING;
+    }
+    #endif
+
+    free(conn->client.data);
+    sdsfree(conn->peer);
+    free(conn);
+}
+
+void te_on_connection_shutdown(uv_shutdown_t *shutdown_request, int status)
+{
+    te_conn_t *conn = (te_conn_t *) shutdown_request->handle;
+
+    if (status)
+        te_log_uv(WARN, status, "Could not shutdown connection from (%s)", conn->peer);
+
+    if (!uv_is_closing((uv_handle_t *) shutdown_request->handle)) {
+        te_log(INFO, "Closing connection from (%s)", conn->peer);
+
+        uv_close((uv_handle_t *) shutdown_request->handle, te_on_connection_close);
+    }
+}
+
+void te_on_worker_loop_close(uv_handle_t *handle, __attribute__((unused)) void *arg)
+{
+    if (uv_is_closing(handle))
+        return;
+
+    switch (handle->type) {
+        case UV_TCP:
+            if (*(te_tcp_type_t *) handle->data == CLIENT) {
+                te_log(
+                    INFO,
+                    "Shutting down connection from (%s)",
+                    ((te_conn_t *) handle)->peer
+                );
+
+                uv_shutdown(
+                    &((te_conn_t *) handle)->shutdown,
+                    (uv_stream_t *) handle,
+                    te_on_connection_shutdown
+                );
+            } else {
+                uv_close(handle, te_on_server_close);
+            }
+
+            break;
+        default:
+            uv_close(handle, NULL);
+            break;
+    }
+}
+
+void te_alloc_buffer(__attribute__((unused)) uv_handle_t *handle, size_t size, uv_buf_t *buffer)
+{
+    *buffer = uv_buf_init((char *) te_malloc(size), size);
 }
 
 te_write_req_t *te_init_write_request(te_conn_t *conn, sds buffer)
@@ -223,43 +338,26 @@ void te_on_connection(uv_stream_t *server, int status)
         }
         #endif
 
+        #if defined(WORKER_CONNECTIONS) && WORKER_CONNECTIONS > 0
+        if (process->current_connections >= WORKER_CONNECTIONS && !uv_is_closing((uv_handle_t *) server)) {
+            te_log(
+                WARN,
+                "Worker pausing while handling max simultaneous connections (%d)",
+                process->current_connections
+            );
+
+            process->state = PROCESS_PAUSED;
+
+            uv_close((uv_handle_t *) server, te_on_server_close);
+        }
+        #endif
+
         uv_read_start((uv_stream_t *) conn, te_alloc_buffer, te_on_echo_read);
     } else {
         te_log_uv(ERROR, result, "Could not accept new connection");
 
         uv_close((uv_handle_t *) conn, te_on_connection_close);
     }
-}
-
-void te_init_server(uv_loop_t *loop, uv_tcp_t *server)
-{
-    int fd;
-    int result;
-    struct sockaddr_in addr;
-
-    uv_tcp_init_ex(loop, server, AF_INET);
-    server->data = te_init_tcp_type(SERVER);
-
-    uv_fileno((uv_handle_t *) server, &fd);
-    te_sock_setreuse_port(fd, 1);
-
-    #ifdef ENABLE_NODELAY
-    if ((result = uv_tcp_nodelay(server, 1)) < 0)
-        te_log_uv(FATAL, result, "Could not set nodelay on socket");
-    #endif
-
-    #ifdef ENABLE_KEEPALIVE
-    if ((result = uv_tcp_keepalive(server, 1, KEEPALIVE_INTERVAL)) < 0)
-        te_log_uv(FATAL, result, "Could not set keepalive on socket");
-    #endif
-
-    uv_ip4_addr("0.0.0.0", PORT_NUMBER, &addr);
-
-    if ((result = uv_tcp_bind(server, (const struct sockaddr *) &addr, 0)) < 0)
-        te_log_uv(FATAL, result, "Could not bind to port (%d)", PORT_NUMBER);
-
-    if ((result = uv_listen((uv_stream_t *) server, CONNECTION_BACKLOG, te_on_connection)) < 0)
-        te_log_uv(FATAL, result, "Could not listen for connections on (%d)", PORT_NUMBER);
 }
 
 int te_set_worker_process_title(sds worker_id)
@@ -312,7 +410,6 @@ int main(int argc, char *argv[])
     uv_signal_t sigquit;
     uv_signal_t sigterm;
     uv_signal_t sigint;
-    uv_tcp_t server;
     uv_timer_t stale_timer;
     uv_timer_t parent_timer;
 
@@ -357,13 +454,13 @@ int main(int argc, char *argv[])
         1000
     );
 
-    te_init_server(&loop, &server);
+    te_init_server(&loop);
 
     uv_run(&loop, UV_RUN_DEFAULT);
 
     te_log(INFO, "Worker shutting down");
 
-    te_close_loop(&loop);
+    te_close_loop(&loop, te_on_worker_loop_close);
 
     te_log(INFO, "All done");
 

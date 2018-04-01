@@ -25,6 +25,7 @@
 
 typedef enum {
     PROCESS_RUNNING,
+    PROCESS_PAUSED,
     PROCESS_STOPPING,
     PROCESS_KILLED
 } te_process_state_t;

@@ -15,6 +15,14 @@ typedef struct worker {
 
 int te_spawn_worker(uv_loop_t *loop, te_worker_t *worker);
 
+void te_on_master_loop_close(uv_handle_t *handle, __attribute__((unused)) void *arg)
+{
+    if (uv_is_closing(handle))
+        return;
+
+    uv_close(handle, NULL);
+}
+
 void te_free_worker(te_worker_t *worker)
 {
     int i;
@@ -299,7 +307,7 @@ int main(int argc, char *argv[])
         free(workers);
     }
 
-    te_close_loop(&loop);
+    te_close_loop(&loop, te_on_master_loop_close);
 
     te_log(INFO, "All done");
 

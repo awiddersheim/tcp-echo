@@ -7,6 +7,7 @@ void te_stop_process(uv_loop_t *loop)
     uv_stop(loop);
 
     switch (process->state) {
+        case PROCESS_PAUSED:
         case PROCESS_RUNNING:
             process->state = PROCESS_STOPPING;
             break;
@@ -16,77 +17,11 @@ void te_stop_process(uv_loop_t *loop)
     }
 }
 
-void te_on_server_close(uv_handle_t *handle)
-{
-    free(handle->data);
-}
-
-void te_on_connection_close(uv_handle_t *handle)
-{
-    te_conn_t *conn = (te_conn_t *) handle;
-    te_process_t *process = (te_process_t *) handle->loop->data;
-
-    process->current_connections--;
-
-    #if defined(WORKER_MAX_CONNECTIONS) && WORKER_MAX_CONNECTIONS > 0
-    if (process->total_connections >= WORKER_MAX_CONNECTIONS)
-        te_stop_process(handle->loop);
-    #endif
-
-    free(conn->client.data);
-    sdsfree(conn->peer);
-    free(conn);
-}
-
-void te_on_connection_shutdown(uv_shutdown_t *shutdown_request, int status)
-{
-    te_conn_t *conn = (te_conn_t *) shutdown_request->handle;
-
-    if (status)
-        te_log_uv(WARN, status, "Could not shutdown connection from (%s)", conn->peer);
-
-    if (!uv_is_closing((uv_handle_t *) shutdown_request->handle)) {
-        te_log(INFO, "Closing connection from (%s)", conn->peer);
-
-        uv_close((uv_handle_t *) shutdown_request->handle, te_on_connection_close);
-    }
-}
-
-void te_on_loop_close(uv_handle_t *handle, __attribute__((unused)) void *arg)
-{
-    if (uv_is_closing(handle))
-        return;
-
-    switch (handle->type) {
-        case UV_TCP:
-            if (*(te_tcp_type_t *) handle->data == CLIENT) {
-                te_log(
-                    INFO,
-                    "Shutting down connection from (%s)",
-                    ((te_conn_t *) handle)->peer
-                );
-
-                uv_shutdown(
-                    &((te_conn_t *) handle)->shutdown,
-                    (uv_stream_t *) handle,
-                    te_on_connection_shutdown
-                );
-            } else {
-                uv_close(handle, te_on_server_close);
-            }
-
-            break;
-        default:
-            uv_close(handle, NULL);
-            break;
-    }
-}
-
-void te_close_loop(uv_loop_t *loop)
+void te_close_loop(uv_loop_t *loop, uv_walk_cb walk_cb)
 {
     int i;
 
-    uv_walk(loop, te_on_loop_close, NULL);
+    uv_walk(loop, walk_cb, NULL);
 
     /* Run loop a few times to clear out any handlers */
     for (i = 0; i <= 10 && uv_run(loop, UV_RUN_ONCE); i++);

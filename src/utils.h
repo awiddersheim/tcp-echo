@@ -18,7 +18,7 @@ void te_set_libuv_allocator(void);
 void te_on_server_close(uv_handle_t *handle);
 void te_on_connection_close(uv_handle_t *handle);
 void te_on_loop_close(uv_handle_t *handle, void *arg);
-void te_close_loop(uv_loop_t *loop);
+void te_close_loop(uv_loop_t *loop, uv_walk_cb callback);
 
 #define te_malloc(x) te__malloc(x, __FILE__, __LINE__)
 #define te_realloc(x, y) te__realloc(x, y, __FILE__, __LINE__)

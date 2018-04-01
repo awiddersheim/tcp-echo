@@ -29,6 +29,12 @@
  */
 #define CONNECTION_TIMEOUT 10
 
+/* The number of simultaneous connections a worker can handle. A setting
+ * of <= 0 means an unlimited number of simultaneous connections will
+ * be handled by each worker.
+ */
+#define WORKER_CONNECTIONS 0
+
 /* The maximum number of connections a worker can accept before it
  * shuts down. This isn't all that useful unless a memory leak
  * develops somewhere. A setting of <= 0 means an unlimited number of
