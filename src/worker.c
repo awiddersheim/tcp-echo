@@ -212,8 +212,15 @@ void te_on_connection(uv_stream_t *server, int status)
         process->total_connections++;
 
         #if defined(WORKER_MAX_CONNECTIONS) && WORKER_MAX_CONNECTIONS > 0
-        if (process->total_connections >= WORKER_MAX_CONNECTIONS)
+        if (process->total_connections >= WORKER_MAX_CONNECTIONS) {
+            te_log(
+                INFO,
+                "Worker has handled max total connections (%d)",
+                process->total_connections
+            );
+
             uv_close((uv_handle_t *) server, te_on_server_close);
+        }
         #endif
 
         uv_read_start((uv_stream_t *) conn, te_alloc_buffer, te_on_echo_read);
