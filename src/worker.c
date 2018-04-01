@@ -1,12 +1,16 @@
 #include "tcp-echo.h"
+#include "worker.h"
 
-typedef struct {
-    uv_write_t request;
-    uv_buf_t buffer;
-    te_conn_t *conn;
-} te_write_req_t;
+void te_alloc_buffer(__attribute__((unused)) uv_handle_t *handle, size_t size, uv_buf_t *buffer)
+{
+    *buffer = uv_buf_init((char *) te_malloc(size), size);
+}
 
-void te_on_connection(uv_stream_t *server, int status);
+void free_write_request(te_write_req_t *write_request)
+{
+    sdsfree(write_request->buffer.base);
+    free(write_request);
+}
 
 te_tcp_type_t *te_init_tcp_type(te_tcp_type_t type)
 {
@@ -69,6 +73,20 @@ uv_tcp_t *te_init_server(uv_loop_t *loop)
 
     return server;
 }
+
+te_write_req_t *te_init_write_request(te_conn_t *conn, sds buffer)
+{
+    te_write_req_t *write_request;
+
+    write_request = te_malloc(sizeof(te_write_req_t));
+    memset(write_request, 0x0, sizeof(te_write_req_t));
+
+    write_request->buffer = uv_buf_init(buffer, sdslen(buffer));
+    write_request->conn = conn;
+
+    return write_request;
+}
+
 
 void te_on_server_close(uv_handle_t *handle)
 {
@@ -145,30 +163,6 @@ void te_on_worker_loop_close(uv_handle_t *handle, __attribute__((unused)) void *
             uv_close(handle, NULL);
             break;
     }
-}
-
-void te_alloc_buffer(__attribute__((unused)) uv_handle_t *handle, size_t size, uv_buf_t *buffer)
-{
-    *buffer = uv_buf_init((char *) te_malloc(size), size);
-}
-
-te_write_req_t *te_init_write_request(te_conn_t *conn, sds buffer)
-{
-    te_write_req_t *write_request;
-
-    write_request = te_malloc(sizeof(te_write_req_t));
-    memset(write_request, 0x0, sizeof(te_write_req_t));
-
-    write_request->buffer = uv_buf_init(buffer, sdslen(buffer));
-    write_request->conn = conn;
-
-    return write_request;
-}
-
-void free_write_request(te_write_req_t *write_request)
-{
-    sdsfree(write_request->buffer.base);
-    free(write_request);
 }
 
 void te_on_echo_write(uv_write_t *request, int status)

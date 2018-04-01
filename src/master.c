@@ -1,27 +1,7 @@
 #include "tcp-echo.h"
+#include "master.h"
 
 extern char **environ;
-
-typedef struct worker {
-    uv_process_t child;
-    uv_process_options_t options;
-    unsigned int id;
-    uv_pid_t pid;
-    int64_t status;
-    int signal;
-    int alive;
-    sds title;
-} te_worker_t;
-
-int te_spawn_worker(uv_loop_t *loop, te_worker_t *worker);
-
-void te_on_master_loop_close(uv_handle_t *handle, __attribute__((unused)) void *arg)
-{
-    if (uv_is_closing(handle))
-        return;
-
-    uv_close(handle, NULL);
-}
 
 void te_free_worker(te_worker_t *worker)
 {
@@ -35,28 +15,6 @@ void te_free_worker(te_worker_t *worker)
     free(worker->options.args);
     free(worker->options.cpumask);
     sdsfree(worker->title);
-}
-
-void te_set_worker_env(char ***env, const char *name, const char *fmt, ...)
-{
-    int i;
-    char **newenv;
-    va_list args;
-
-    for (i = 0; (*env)[i] != NULL; i++)
-        continue;
-
-    newenv = te_realloc(*env, sizeof(char *) * (i + 2));
-
-    newenv[i] = sdscatprintf(sdsempty(), "%s=", name);
-
-    va_start(args, fmt);
-    newenv[i] = sdscatvprintf(newenv[i], fmt, args);
-    va_end(args);
-
-    newenv[++i] = NULL;
-
-    *env = newenv;
 }
 
 char **te_init_worker_env()
@@ -80,6 +38,52 @@ char **te_init_worker_env()
     envp[i] = NULL;
 
     return envp;
+}
+
+void te_init_worker(te_worker_t *worker, int id, int cpu)
+{
+    int stdio_count = 3;
+    int cpumask_size;
+
+    memset(worker, 0x0, sizeof(te_worker_t));
+
+    worker->id = id;
+
+    worker->title = sdscatprintf(sdsempty(), "worker-%d", id);
+
+    worker->options.exit_cb = te_on_worker_exit;
+    worker->options.file = "tcp-echo-worker";
+
+    worker->options.args = te_malloc(sizeof(char *) * 2);
+    worker->options.args[0] = "tcp-echo-worker";
+    worker->options.args[1] = NULL;
+
+    worker->options.env = te_init_worker_env();
+    te_set_worker_env(&worker->options.env, "TE_WORKER_ID", "%d", worker->id);
+    te_set_worker_env(&worker->options.env, "TE_MASTER_PID", "%d", uv_os_getpid());
+
+    worker->options.stdio = te_malloc(sizeof(uv_stdio_container_t) * stdio_count);
+    worker->options.stdio_count = stdio_count;
+    worker->options.stdio[0].flags = UV_IGNORE;
+    worker->options.stdio[1].flags = UV_INHERIT_FD;
+    worker->options.stdio[1].data.file = 1;
+    worker->options.stdio[2].flags = UV_INHERIT_FD;
+    worker->options.stdio[2].data.file = 2;
+
+    if (cpu >= 0  && (cpumask_size = uv_cpumask_size()) >= 0) {
+        worker->options.cpumask = te_calloc(cpumask_size, sizeof(char *));
+
+        worker->options.cpumask[cpu] = 1;
+        worker->options.cpumask_size =cpumask_size;
+    }
+}
+
+void te_on_master_loop_close(uv_handle_t *handle, __attribute__((unused)) void *arg)
+{
+    if (uv_is_closing(handle))
+        return;
+
+    uv_close(handle, NULL);
 }
 
 void te_on_worker_close(uv_handle_t *handle)
@@ -125,61 +129,26 @@ void te_on_worker_exit(uv_process_t *process, int64_t status, int signal)
     uv_close((uv_handle_t *) process, te_on_worker_close);
 }
 
-void te_init_worker(te_worker_t *worker, int id, int cpu)
+void te_set_worker_env(char ***env, const char *name, const char *fmt, ...)
 {
-    int stdio_count = 3;
-    int cpumask_size;
+    int i;
+    char **newenv;
+    va_list args;
 
-    memset(worker, 0x0, sizeof(te_worker_t));
+    for (i = 0; (*env)[i] != NULL; i++)
+        continue;
 
-    worker->id = id;
+    newenv = te_realloc(*env, sizeof(char *) * (i + 2));
 
-    worker->title = sdscatprintf(sdsempty(), "worker-%d", id);
+    newenv[i] = sdscatprintf(sdsempty(), "%s=", name);
 
-    worker->options.exit_cb = te_on_worker_exit;
-    worker->options.file = "tcp-echo-worker";
+    va_start(args, fmt);
+    newenv[i] = sdscatvprintf(newenv[i], fmt, args);
+    va_end(args);
 
-    worker->options.args = te_malloc(sizeof(char *) * 2);
-    worker->options.args[0] = "tcp-echo-worker";
-    worker->options.args[1] = NULL;
+    newenv[++i] = NULL;
 
-    worker->options.env = te_init_worker_env();
-    te_set_worker_env(&worker->options.env, "TE_WORKER_ID", "%d", worker->id);
-    te_set_worker_env(&worker->options.env, "TE_MASTER_PID", "%d", uv_os_getpid());
-
-    worker->options.stdio = te_malloc(sizeof(uv_stdio_container_t) * stdio_count);
-    worker->options.stdio_count = stdio_count;
-    worker->options.stdio[0].flags = UV_IGNORE;
-    worker->options.stdio[1].flags = UV_INHERIT_FD;
-    worker->options.stdio[1].data.file = 1;
-    worker->options.stdio[2].flags = UV_INHERIT_FD;
-    worker->options.stdio[2].data.file = 2;
-
-    if (cpu >= 0  && (cpumask_size = uv_cpumask_size()) >= 0) {
-        worker->options.cpumask = te_calloc(cpumask_size, sizeof(char *));
-
-        worker->options.cpumask[cpu] = 1;
-        worker->options.cpumask_size =cpumask_size;
-    }
-}
-
-int te_spawn_worker(uv_loop_t *loop, te_worker_t *worker)
-{
-    int result;
-
-    te_log(INFO, "Creating worker (%s)", worker->title);
-
-    if ((result = uv_spawn(loop, (uv_process_t *) worker, &worker->options)) < 0) {
-        te_log_uv(ERROR, result, "Could not spawn worker (%d)", worker->id);
-        return result;
-    }
-
-    worker->pid = uv_process_get_pid((uv_process_t *) worker);
-    worker->alive = 1;
-
-    te_log(INFO, "Created worker (%s) with pid (%d)", worker->title, worker->pid);
-
-    return 0;
+    *env = newenv;
 }
 
 int te_update_path()
@@ -205,6 +174,25 @@ int te_update_path()
     sdsfree(path);
 
     return result;
+}
+
+int te_spawn_worker(uv_loop_t *loop, te_worker_t *worker)
+{
+    int result;
+
+    te_log(INFO, "Creating worker (%s)", worker->title);
+
+    if ((result = uv_spawn(loop, (uv_process_t *) worker, &worker->options)) < 0) {
+        te_log_uv(ERROR, result, "Could not spawn worker (%d)", worker->id);
+        return result;
+    }
+
+    worker->pid = uv_process_get_pid((uv_process_t *) worker);
+    worker->alive = 1;
+
+    te_log(INFO, "Created worker (%s) with pid (%d)", worker->title, worker->pid);
+
+    return 0;
 }
 
 int main(int argc, char *argv[])
