@@ -35,8 +35,8 @@ typedef struct {
     int is_worker;
     uv_pid_t ppid;
     int workers_reaped;
-    int current_connections;
-    int total_connections;
+    unsigned int current_connections;
+    unsigned int total_connections;
 } te_process_t;
 
 typedef struct {
