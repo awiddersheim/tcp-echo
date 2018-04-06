@@ -223,12 +223,9 @@ int main(int argc, char *argv[])
 
     loop.data = &process;
 
-    uv_signal_init(&loop, &sigquit);
-    uv_signal_init(&loop, &sigterm);
-    uv_signal_init(&loop, &sigint);
-    uv_signal_start(&sigquit, te_signal_recv, SIGQUIT);
-    uv_signal_start(&sigterm, te_signal_recv, SIGTERM);
-    uv_signal_start(&sigint, te_signal_recv, SIGINT);
+    te_init_signal(&loop, &sigquit, te_signal_recv, SIGQUIT);
+    te_init_signal(&loop, &sigterm, te_signal_recv, SIGTERM);
+    te_init_signal(&loop, &sigint, te_signal_recv, SIGINT);
 
     te_update_path();
 

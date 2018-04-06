@@ -1,5 +1,26 @@
 #include "tcp-echo.h"
 
+void te_init_signal(uv_loop_t *loop, uv_signal_t *handle, uv_signal_cb signal_cb, int signal)
+{
+    int result;
+
+    if ((result = uv_signal_init(loop, handle)) < 0)
+        te_log_uv(
+            FATAL,
+            result,
+            "Could not initialize signal handle for (%d)",
+            signal
+        );
+
+    if ((result = uv_signal_start(handle, signal_cb, signal)) < 0)
+        te_log_uv(
+            FATAL,
+            result,
+            "Could not start signal handle for (%d)",
+            signal
+        );
+}
+
 void te_stop_process(uv_loop_t *loop)
 {
     te_process_t *process = (te_process_t *) loop->data;
