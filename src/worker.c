@@ -404,6 +404,7 @@ int main(int argc, char *argv[])
     uv_signal_t sigquit;
     uv_signal_t sigterm;
     uv_signal_t sigint;
+    uv_signal_t sigusr1;
     uv_timer_t stale_timer;
     uv_timer_t parent_timer;
 
@@ -428,9 +429,11 @@ int main(int argc, char *argv[])
     uv_signal_init(&loop, &sigquit);
     uv_signal_init(&loop, &sigterm);
     uv_signal_init(&loop, &sigint);
+    uv_signal_init(&loop, &sigusr1);
     uv_signal_start(&sigquit, te_signal_recv, SIGQUIT);
     uv_signal_start(&sigterm, te_signal_recv, SIGTERM);
     uv_signal_start(&sigint, te_signal_recv, SIGINT);
+    uv_signal_start(&sigusr1, te_signal_recv, SIGUSR1);
 
     uv_timer_init(&loop, &stale_timer);
     uv_timer_start(

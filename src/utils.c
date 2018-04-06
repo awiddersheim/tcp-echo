@@ -69,6 +69,21 @@ void te_signal_recv(uv_signal_t *handle, int signal)
         case SIGTERM:
             te_stop_process(handle->loop);
             break;
+        case SIGUSR1:
+            if (process->is_worker) {
+                 te_log(
+                    INFO,
+                    "Worker is currently handling (%d) connections",
+                    process->current_connections
+                );
+
+                 te_log(
+                    INFO,
+                    "Worker has handled (%d) connections",
+                    process->total_connections
+                );
+            }
+            break;
         default:
             break;
     }
