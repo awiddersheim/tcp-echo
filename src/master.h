@@ -1,17 +1,6 @@
 #ifndef __MASTER_H_
 #define __MASTER_H_
 
-typedef struct worker {
-    uv_process_t child;
-    uv_process_options_t options;
-    unsigned int id;
-    uv_pid_t pid;
-    int64_t status;
-    int signal;
-    int alive;
-    sds title;
-} te_worker_t;
-
 void te_free_worker(te_worker_t *worker);
 
 char **te_init_worker_env();

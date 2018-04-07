@@ -1,5 +1,25 @@
 #include "tcp-echo.h"
 
+void te_propagate_signal(te_process_t *process, int signal)
+{
+    int i;
+
+    for (i = 0; i < process->worker_count; i++) {
+        if (!process->workers[i].alive)
+            continue;
+
+        te_log(
+            INFO,
+            "Sending signal (%s) to (worker-%d) with pid (%d)",
+            strsignal(signal),
+            process->workers[i].id,
+            process->workers[i].pid
+        );
+
+        uv_kill(process->workers[i].pid, signal);
+    }
+}
+
 void te_init_signal(uv_loop_t *loop, uv_signal_t *handle, uv_signal_cb signal_cb, int signal)
 {
     int result;
@@ -103,6 +123,8 @@ void te_signal_recv(uv_signal_t *handle, int signal)
                     "Worker has handled (%d) connections",
                     process->total_connections
                 );
+            } else {
+                te_propagate_signal(process, SIGUSR1);
             }
             break;
         default:

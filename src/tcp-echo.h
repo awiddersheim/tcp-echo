@@ -30,6 +30,17 @@ typedef enum {
     PROCESS_KILLED
 } te_process_state_t;
 
+typedef struct worker {
+    uv_process_t child;
+    uv_process_options_t options;
+    unsigned int id;
+    uv_pid_t pid;
+    int64_t status;
+    int signal;
+    int alive;
+    sds title;
+} te_worker_t;
+
 typedef struct {
     te_process_state_t state;
     int is_worker;
@@ -37,6 +48,8 @@ typedef struct {
     int workers_reaped;
     unsigned int current_connections;
     unsigned int total_connections;
+    int worker_count;
+    te_worker_t *workers;
 } te_process_t;
 
 typedef struct {

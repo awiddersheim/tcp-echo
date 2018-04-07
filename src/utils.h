@@ -14,6 +14,7 @@ int te_set_process_title(const char *fmt, ...);
 void te_stop_process(uv_loop_t *loop);
 void te_init_process(te_process_t *process, int is_worker);
 void te_init_signal(uv_loop_t *loop, uv_signal_t *handle, uv_signal_cb signal_cb, int signal);
+void te_propagate_signal(te_process_t *process, int signal);
 void te_set_libuv_allocator(void);
 
 void te_on_server_close(uv_handle_t *handle);
