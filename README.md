@@ -13,6 +13,16 @@ This has sort of evolved to become a nano version of [NGINX's][nginx]
 workers handling incoming connections which are [distributed by the
 kernel][nginx-reuseport] using `SO_REUSEPORT`.
 
+```
+tcp-echo[mastr]
+ \_ tcp-echo[wrk1] <--  |K
+ \_ tcp-echo[wrk2] <--  |E      o/
+ \_ tcp-echo[wrk3] <--  |R <-- /| User
+ \_ tcp-echo[wrk4] <--  |N     / \
+ \_ tcp-echo[wrk5] <--  |E
+ \_ tcp-echo[wrk6] <--  |L
+```
+
 ## Table of Contents
 
 * [Quickstart](#quickstart)
