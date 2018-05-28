@@ -14,7 +14,6 @@ yum install -y --disableplugin=fastestmirror \
     clang-analyzer \
     cmake \
     gcc \
-    gcc-c++ \
     git \
     libtool \
     make \

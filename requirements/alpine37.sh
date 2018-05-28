@@ -18,7 +18,6 @@ apk add --update \
     cmake \
     file \
     gcc \
-    g++ \
     git \
     libtool \
     make \

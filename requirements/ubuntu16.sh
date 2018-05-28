@@ -14,7 +14,6 @@ apt-get -y install \
     clang \
     cmake \
     gcc \
-    g++ \
     git \
     libtool \
     make \
