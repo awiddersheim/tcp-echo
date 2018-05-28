@@ -22,6 +22,7 @@ apk add --update \
     git \
     libtool \
     make \
+    musl-dev \
     netcat-openbsd \
     valgrind \
     vim
