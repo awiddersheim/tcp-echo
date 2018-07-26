@@ -74,7 +74,7 @@ void te_init_worker(te_worker_t *worker, int id, int cpu)
         worker->options.cpumask = te_calloc(cpumask_size, sizeof(char *));
 
         worker->options.cpumask[cpu] = 1;
-        worker->options.cpumask_size =cpumask_size;
+        worker->options.cpumask_size = cpumask_size;
     }
 }
 
