@@ -14,13 +14,13 @@ workers handling incoming connections which are [distributed by the
 kernel][nginx-reuseport] using `SO_REUSEPORT`.
 
 ```
-tcp-echo[mastr]
- \_ tcp-echo[wrk1] <--  |K
- \_ tcp-echo[wrk2] <--  |E      o/
- \_ tcp-echo[wrk3] <--  |R <-- /| User
- \_ tcp-echo[wrk4] <--  |N     / \
- \_ tcp-echo[wrk5] <--  |E
- \_ tcp-echo[wrk6] <--  |L
+                  tcp-echo[mastr]
+            K| --> \_ tcp-echo[wrk1]
+      o/    E| --> \_ tcp-echo[wrk2]
+User /| --> R| --> \_ tcp-echo[wrk3]
+     / \    N| --> \_ tcp-echo[wrk4]
+            E| --> \_ tcp-echo[wrk5]
+            L| --> \_ tcp-echo[wrk6]
 ```
 
 ## Table of Contents
@@ -33,6 +33,7 @@ tcp-echo[mastr]
 * [Testing](#testing)
   * [Valgrind](#valgrind)
   * [Performance](#performance)
+* [Configuring](#configuring)
 * [Communication](#communication)
 * [Contributing](#contributing)
 
