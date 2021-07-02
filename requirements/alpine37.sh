@@ -4,7 +4,7 @@ set -xe
 
 . /etc/os-release
 
-if [ "${ID}" != "alpine" ] || [ "${VERSION_ID}" != "3.7.0" ]; then
+if [ "${ID}" != "alpine" ] || [ "${VERSION_ID}" != "3.7.3" ]; then
     exit 0
 fi
 

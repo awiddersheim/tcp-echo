@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=alpine:3.7
+ARG BASE_IMAGE=alpine:3.7.3
 
 # Development
 FROM ${BASE_IMAGE} as dev
