@@ -78,6 +78,39 @@ void te_init_worker(te_worker_t *worker, int id, int cpu)
     }
 }
 
+void te_init_workers(te_process_t *process)
+{
+    int cpu;
+    int cpu_count;
+    uv_cpu_info_t *cpu_info;
+    int result;
+    int workers;
+
+    if ((result = uv_cpu_info(&cpu_info, &cpu_count)) < 0)
+        te_log_uv(FATAL, result, "Could not determine number of CPUs");
+
+    uv_free_cpu_info(cpu_info, cpu_count);
+
+    #if defined(WORKERS) && WORKERS > 0
+    process->worker_count = WORKERS;
+    #else
+    process->worker_count = cpu_count;
+    #endif
+
+    process->workers = te_malloc(sizeof(te_worker_t) * process->worker_count);
+
+    for (workers = 0, cpu = 0; workers < process->worker_count;) {
+        te_init_worker(&process->workers[workers], workers + 1, cpu);
+
+        cpu++;
+
+        if (cpu >= cpu_count)
+            cpu = 0;
+
+        workers++;
+    }
+}
+
 void te_on_master_loop_close(uv_handle_t *handle, __attribute__((unused)) void *arg)
 {
     if (uv_is_closing(handle))
@@ -90,7 +123,6 @@ void te_on_worker_close(uv_handle_t *handle)
 {
     te_worker_t *worker = (te_worker_t *) handle;
     te_process_t *process = (te_process_t *) handle->loop->data;
-    struct timespec wait;
 
     te_log(
         ((process->state == PROCESS_RUNNING) ? WARN : INFO),
@@ -100,21 +132,12 @@ void te_on_worker_close(uv_handle_t *handle)
         (long) worker->status
     );
 
-    if (process->state == PROCESS_RUNNING) {
-        /* TODO(awiddersheim): This _could_ block the entire event loop
-         * for a while so find a better way to spawn this with retries.
-         */
-        while (te_spawn_worker(handle->loop, worker)) {
-            /* Sleep for 0.1 seconds */
-            wait.tv_sec = 0;
-            wait.tv_nsec = 100000000;
+    process->alive_workers--;
 
-            while (nanosleep(&wait, &wait));
-        }
-    } else {
+    if (process->state != PROCESS_RUNNING) {
         te_free_worker(worker);
-
-        process->workers_reaped++;
+    } else {
+        uv_timer_again(process->worker_timer);
     }
 }
 
@@ -159,11 +182,13 @@ int te_update_path()
 
     path = te_os_getenv("PATH");
 
+    // *INDENT-OFF*
     newpath = sdscatprintf(
         sdsempty(),
         path ? "%s:." : "%s.",
         path ? path : ""
     );
+    // *INDENT-ON*
 
     te_log(DEBUG, "Setting PATH to (%s)", newpath);
 
@@ -195,19 +220,55 @@ int te_spawn_worker(uv_loop_t *loop, te_worker_t *worker)
     return 0;
 }
 
-int main(int argc, char *argv[])
+int te_spawn_workers(uv_loop_t *loop, te_process_t *process)
 {
     int i;
+    int workers = 0;
+
+    if (process->state != PROCESS_RUNNING || process->worker_count == process->alive_workers)
+        return 0;
+
+    for (i = 0; i < process->worker_count; i++) {
+        if (process->workers[i].alive) {
+            continue;
+        }
+
+        if (!te_spawn_worker(loop, &process->workers[i])) {
+            if (!process->is_listening) {
+                process->is_listening = 1;
+
+                te_log(INFO, "Listening on 0.0.0.0:%d", PORT_NUMBER);
+            }
+
+            workers++;
+        }
+    }
+
+    process->alive_workers += workers;
+
+    return workers;
+}
+
+void te_on_worker_timer(uv_timer_t *timer)
+{
+    te_process_t *process = (te_process_t *) timer->loop->data;
+
+    te_spawn_workers(timer->loop, process);
+
+    if (process->worker_count == process->alive_workers)
+        uv_timer_stop(timer);
+}
+
+int main(int argc, char *argv[])
+{
     int result;
-    int cpu;
-    int cpu_count;
-    uv_cpu_info_t *cpu_info;
     te_process_t process;
     uv_loop_t loop;
     uv_signal_t sigquit;
     uv_signal_t sigterm;
     uv_signal_t sigint;
     uv_signal_t sigusr1;
+    uv_timer_t worker_timer;
 
     te_set_libuv_allocator();
 
@@ -229,36 +290,19 @@ int main(int argc, char *argv[])
 
     te_update_path();
 
-    if ((result = uv_cpu_info(&cpu_info, &cpu_count)) < 0)
-        te_log_uv(FATAL, result, "Could not determine number of CPUs");
+    te_init_workers(&process);
 
-    uv_free_cpu_info(cpu_info, cpu_count);
+    uv_timer_init(&loop, &worker_timer);
+    uv_timer_start(
+        &worker_timer,
+        te_on_worker_timer,
+        0,
+        1000
+    );
 
-    #if defined(WORKERS) && WORKERS > 0
-    process.worker_count = WORKERS;
-    #else
-    process.worker_count = cpu_count;
-    #endif
+    process.worker_timer = &worker_timer;
 
     te_log(INFO, "Starting (%d) workers", process.worker_count);
-
-    process.workers = te_malloc(sizeof(te_worker_t) * process.worker_count);
-
-    for (i = 0, cpu = 0; i < process.worker_count;) {
-        te_init_worker(&process.workers[i], i + 1, cpu);
-
-        if (te_spawn_worker(&loop, &process.workers[i]))
-            continue;
-
-        cpu++;
-
-        if (cpu >= cpu_count)
-            cpu = 0;
-
-        i++;
-    }
-
-    te_log(INFO, "Listening on 0.0.0.0:%d", PORT_NUMBER);
 
     uv_run(&loop, UV_RUN_DEFAULT);
 
@@ -266,7 +310,7 @@ int main(int argc, char *argv[])
 
     te_propagate_signal(&process, SIGTERM);
 
-    while (process.state != PROCESS_KILLED && process.worker_count > process.workers_reaped)
+    while (process.state != PROCESS_KILLED && process.alive_workers)
         uv_run(&loop, UV_RUN_ONCE);
 
     if (process.state == PROCESS_KILLED) {
@@ -274,7 +318,7 @@ int main(int argc, char *argv[])
             WARN,
             "Master was killed before stopping all (%d) workers, only stopped (%d)",
             process.worker_count,
-            process.workers_reaped
+            process.worker_count - process.alive_workers
         );
     }
 

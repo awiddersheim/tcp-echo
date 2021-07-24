@@ -112,13 +112,13 @@ void te_signal_recv(uv_signal_t *handle, int signal)
             break;
         case SIGUSR1:
             if (process->is_worker) {
-                 te_log(
+                te_log(
                     INFO,
                     "Worker is currently handling (%d) connections",
                     process->current_connections
                 );
 
-                 te_log(
+                te_log(
                     INFO,
                     "Worker has handled (%d) connections",
                     process->total_connections
@@ -142,6 +142,7 @@ int te_gettimestamp(char *buffer, size_t size)
     gmtime_r(&now, &tm);
     gettimeofday(&tv, NULL);
 
+    // *INDENT-OFF*
     return snprintf(
         buffer,
         size,
@@ -154,6 +155,7 @@ int te_gettimestamp(char *buffer, size_t size)
         tm.tm_sec,
         (long) tv.tv_usec / 1000
     );
+    // *INDENT-ON*
 }
 
 void te_sock_setreuse_port(int sock, int reuse)
@@ -202,11 +204,13 @@ sds te_getpeername(uv_tcp_t *handle)
 
     failure = 0;
 
+    // *INDENT-OFF*
     cleanup:
         if (failure)
             peer = sdsnew("unknown");
         else
             peer = sdscatprintf(sdsempty(), "%s:%d", buffer, ntohs(addr.sin_port));
+    // *INDENT-ON*
 
     return peer;
 }

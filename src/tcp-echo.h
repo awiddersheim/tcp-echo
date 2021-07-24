@@ -43,13 +43,15 @@ typedef struct worker {
 
 typedef struct {
     te_process_state_t state;
+    int is_listening;
     int is_worker;
+    int alive_workers;
     uv_pid_t ppid;
-    int workers_reaped;
     unsigned int current_connections;
     unsigned int total_connections;
     int worker_count;
     te_worker_t *workers;
+    uv_timer_t *worker_timer;
 } te_process_t;
 
 typedef struct {

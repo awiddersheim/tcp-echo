@@ -239,9 +239,9 @@ void te_on_stale_walk(uv_handle_t *handle, __attribute__((unused)) void *arg)
     te_write_req_t *write_request;
 
     if (uv_is_closing(handle)
-            || handle->type != UV_TCP
-            || handle->data == NULL
-            || *(te_tcp_type_t *) handle->data != CLIENT)
+        || handle->type != UV_TCP
+        || handle->data == NULL
+        || *(te_tcp_type_t *) handle->data != CLIENT)
         return;
 
     conn = (te_conn_t *) handle;
