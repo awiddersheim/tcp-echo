@@ -204,13 +204,11 @@ sds te_getpeername(uv_tcp_t *handle)
 
     failure = 0;
 
-    // *INDENT-OFF*
-    cleanup:
-        if (failure)
-            peer = sdsnew("unknown");
-        else
-            peer = sdscatprintf(sdsempty(), "%s:%d", buffer, ntohs(addr.sin_port));
-    // *INDENT-ON*
+cleanup:
+    if (failure)
+        peer = sdsnew("unknown");
+    else
+        peer = sdscatprintf(sdsempty(), "%s:%d", buffer, ntohs(addr.sin_port));
 
     return peer;
 }
