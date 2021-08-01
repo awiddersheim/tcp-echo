@@ -29,6 +29,6 @@ void te_on_connection(uv_stream_t *server, int status);
 
 int te_set_worker_process_title(sds worker_id);
 char *te_set_worker_title(char *worker_id);
-void te_update_parent_pid(te_process_t *process);
+void te_update_parent_pid(te_worker_process_t *process);
 
 #endif

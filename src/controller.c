@@ -1,5 +1,5 @@
 #include "tcp-echo.h"
-#include "master.h"
+#include "controller.h"
 
 extern char **environ;
 
@@ -20,7 +20,7 @@ void te_free_worker(te_worker_t *worker)
 char **te_init_worker_env()
 {
     /* NOTE(awiddersheim): Want to pass on the original environment used
-     * when the master process was spawned but also be able to include
+     * when the controller process was spawned but also be able to include
      * additional variables that only get passed on to the worker. To do
      * that, copy the environment to a new location for use in the worker.
      */
@@ -60,7 +60,7 @@ void te_init_worker(te_worker_t *worker, int id, int cpu)
 
     worker->options.env = te_init_worker_env();
     te_set_worker_env(&worker->options.env, "TE_WORKER_ID", "%d", worker->id);
-    te_set_worker_env(&worker->options.env, "TE_MASTER_PID", "%d", uv_os_getpid());
+    te_set_worker_env(&worker->options.env, "TE_CONTROLLER_PID", "%d", uv_os_getpid());
 
     worker->options.stdio = te_malloc(sizeof(uv_stdio_container_t) * stdio_count);
     worker->options.stdio_count = stdio_count;
@@ -78,7 +78,7 @@ void te_init_worker(te_worker_t *worker, int id, int cpu)
     }
 }
 
-void te_init_workers(te_process_t *process)
+void te_init_workers(te_controller_process_t *controller_process)
 {
     int cpu;
     int cpu_count;
@@ -92,15 +92,15 @@ void te_init_workers(te_process_t *process)
     uv_free_cpu_info(cpu_info, cpu_count);
 
     #if defined(WORKERS) && WORKERS > 0
-    process->worker_count = WORKERS;
+    controller_process->worker_count = WORKERS;
     #else
-    process->worker_count = cpu_count;
+    controller_process->worker_count = cpu_count;
     #endif
 
-    process->workers = te_malloc(sizeof(te_worker_t) * process->worker_count);
+    controller_process->workers = te_malloc(sizeof(te_worker_t) * controller_process->worker_count);
 
-    for (workers = 0, cpu = 0; workers < process->worker_count;) {
-        te_init_worker(&process->workers[workers], workers + 1, cpu);
+    for (workers = 0, cpu = 0; workers < controller_process->worker_count;) {
+        te_init_worker(&controller_process->workers[workers], workers + 1, cpu);
 
         cpu++;
 
@@ -111,7 +111,7 @@ void te_init_workers(te_process_t *process)
     }
 }
 
-void te_on_master_loop_close(uv_handle_t *handle, __attribute__((unused)) void *arg)
+void te_on_controller_loop_close(uv_handle_t *handle, __attribute__((unused)) void *arg)
 {
     if (uv_is_closing(handle))
         return;
@@ -122,22 +122,22 @@ void te_on_master_loop_close(uv_handle_t *handle, __attribute__((unused)) void *
 void te_on_worker_close(uv_handle_t *handle)
 {
     te_worker_t *worker = (te_worker_t *) handle;
-    te_process_t *process = (te_process_t *) handle->loop->data;
+    te_controller_process_t *controller_process = (te_controller_process_t *) handle->loop->data;
 
     te_log(
-        ((process->state == PROCESS_RUNNING) ? WARN : INFO),
+        ((controller_process->state == PROCESS_RUNNING) ? WARN : INFO),
         "Worker (%s) with pid (%d) exited with (%ld)",
         worker->title,
         worker->pid,
         (long) worker->status
     );
 
-    process->alive_workers--;
+    controller_process->alive_workers--;
 
-    if (process->state != PROCESS_RUNNING) {
+    if (controller_process->state != PROCESS_RUNNING) {
         te_free_worker(worker);
     } else {
-        uv_timer_again(process->worker_timer);
+        uv_timer_again(controller_process->worker_timer);
     }
 }
 
@@ -220,22 +220,22 @@ int te_spawn_worker(uv_loop_t *loop, te_worker_t *worker)
     return 0;
 }
 
-int te_spawn_workers(uv_loop_t *loop, te_process_t *process)
+int te_spawn_workers(uv_loop_t *loop, te_controller_process_t *controller_process)
 {
     int i;
     int workers = 0;
 
-    if (process->state != PROCESS_RUNNING || process->worker_count == process->alive_workers)
+    if (controller_process->state != PROCESS_RUNNING || controller_process->worker_count == controller_process->alive_workers)
         return 0;
 
-    for (i = 0; i < process->worker_count; i++) {
-        if (process->workers[i].alive) {
+    for (i = 0; i < controller_process->worker_count; i++) {
+        if (controller_process->workers[i].alive) {
             continue;
         }
 
-        if (!te_spawn_worker(loop, &process->workers[i])) {
-            if (!process->is_listening) {
-                process->is_listening = 1;
+        if (!te_spawn_worker(loop, &controller_process->workers[i])) {
+            if (!controller_process->is_listening) {
+                controller_process->is_listening = 1;
 
                 te_log(INFO, "Listening on 0.0.0.0:%d", PORT_NUMBER);
             }
@@ -244,25 +244,25 @@ int te_spawn_workers(uv_loop_t *loop, te_process_t *process)
         }
     }
 
-    process->alive_workers += workers;
+    controller_process->alive_workers += workers;
 
     return workers;
 }
 
 void te_on_worker_timer(uv_timer_t *timer)
 {
-    te_process_t *process = (te_process_t *) timer->loop->data;
+    te_controller_process_t *controller_process = (te_controller_process_t *) timer->loop->data;
 
-    te_spawn_workers(timer->loop, process);
+    te_spawn_workers(timer->loop, controller_process);
 
-    if (process->worker_count == process->alive_workers)
+    if (controller_process->worker_count == controller_process->alive_workers)
         uv_timer_stop(timer);
 }
 
 int main(int argc, char *argv[])
 {
     int result;
-    te_process_t process;
+    te_controller_process_t controller_process;
     uv_loop_t loop;
     uv_signal_t sigquit;
     uv_signal_t sigterm;
@@ -272,16 +272,16 @@ int main(int argc, char *argv[])
 
     te_set_libuv_allocator();
 
-    te_set_title("master");
+    te_set_title("controller");
     uv_setup_args(argc, argv);
-    te_set_process_title("tcp-echo[mastr]");
+    te_set_process_title("tcp-echo[ctrlr]");
 
-    te_init_process(&process, 0);
+    te_init_process((te_process_t *) &controller_process, CONTROLLER);
 
     if ((result = uv_loop_init(&loop)) < 0)
-        te_log_uv(FATAL, result, "Could not create master loop");
+        te_log_uv(FATAL, result, "Could not create controller loop");
 
-    loop.data = &process;
+    loop.data = &controller_process;
 
     te_init_signal(&loop, &sigquit, te_signal_recv, SIGQUIT);
     te_init_signal(&loop, &sigterm, te_signal_recv, SIGTERM);
@@ -290,7 +290,7 @@ int main(int argc, char *argv[])
 
     te_update_path();
 
-    te_init_workers(&process);
+    te_init_workers(&controller_process);
 
     uv_timer_init(&loop, &worker_timer);
     uv_timer_start(
@@ -300,31 +300,31 @@ int main(int argc, char *argv[])
         1000
     );
 
-    process.worker_timer = &worker_timer;
+    controller_process.worker_timer = &worker_timer;
 
-    te_log(INFO, "Starting (%d) workers", process.worker_count);
+    te_log(INFO, "Starting (%d) workers", controller_process.worker_count);
 
     uv_run(&loop, UV_RUN_DEFAULT);
 
-    te_log(INFO, "Master shutting down");
+    te_log(INFO, "controller shutting down");
 
-    te_propagate_signal(&process, SIGTERM);
+    te_propagate_signal(&controller_process, SIGTERM);
 
-    while (process.state != PROCESS_KILLED && process.alive_workers)
+    while (controller_process.state != PROCESS_KILLED && controller_process.alive_workers)
         uv_run(&loop, UV_RUN_ONCE);
 
-    if (process.state == PROCESS_KILLED) {
+    if (controller_process.state == PROCESS_KILLED) {
         te_log(
             WARN,
-            "Master was killed before stopping all (%d) workers, only stopped (%d)",
-            process.worker_count,
-            process.worker_count - process.alive_workers
+            "controller was killed before stopping all (%d) workers, only stopped (%d)",
+            controller_process.worker_count,
+            controller_process.worker_count - controller_process.alive_workers
         );
     }
 
-    free(process.workers);
+    free(controller_process.workers);
 
-    te_close_loop(&loop, te_on_master_loop_close);
+    te_close_loop(&loop, te_on_controller_loop_close);
 
     te_log(INFO, "All done");
 

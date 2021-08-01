@@ -41,18 +41,34 @@ typedef struct worker {
     sds title;
 } te_worker_t;
 
+typedef enum {
+    CONTROLLER,
+    WORKER
+} te_process_type_t;
+
+#define TE_PROCESS_FIELDS           \
+    te_process_state_t state;       \
+    te_process_type_t process_type; \
+
 typedef struct {
-    te_process_state_t state;
+    TE_PROCESS_FIELDS
+} te_process_t;
+
+typedef struct {
+    TE_PROCESS_FIELDS
     int is_listening;
-    int is_worker;
     int alive_workers;
-    uv_pid_t ppid;
-    unsigned int current_connections;
-    unsigned int total_connections;
     int worker_count;
     te_worker_t *workers;
     uv_timer_t *worker_timer;
-} te_process_t;
+} te_controller_process_t;
+
+typedef struct {
+    TE_PROCESS_FIELDS
+    unsigned int current_connections;
+    unsigned int total_connections;
+    uv_pid_t ppid;
+} te_worker_process_t;
 
 typedef struct {
     uv_tcp_t client;

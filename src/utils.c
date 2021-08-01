@@ -1,22 +1,22 @@
 #include "tcp-echo.h"
 
-void te_propagate_signal(te_process_t *process, int signal)
+void te_propagate_signal(te_controller_process_t *controller_process, int signal)
 {
     int i;
 
-    for (i = 0; i < process->worker_count; i++) {
-        if (!process->workers[i].alive)
+    for (i = 0; i < controller_process->worker_count; i++) {
+        if (!controller_process->workers[i].alive)
             continue;
 
         te_log(
             INFO,
             "Sending signal (%s) to (worker-%d) with pid (%d)",
             strsignal(signal),
-            process->workers[i].id,
-            process->workers[i].pid
+            controller_process->workers[i].id,
+            controller_process->workers[i].pid
         );
 
-        uv_kill(process->workers[i].pid, signal);
+        uv_kill(controller_process->workers[i].pid, signal);
     }
 }
 
@@ -99,32 +99,35 @@ sds te_os_getenv(const char *name)
 void te_signal_recv(uv_signal_t *handle, int signal)
 {
     te_process_t *process = (te_process_t *) handle->loop->data;
+    te_worker_process_t *worker_process;
 
     te_log(INFO, "Processing signal (%s)", strsignal(signal));
 
     switch (signal) {
         case SIGINT:
-            if (process->is_worker)
+            if (process->process_type == WORKER)
                 break;
         case SIGQUIT:
         case SIGTERM:
             te_stop_process(handle->loop);
             break;
         case SIGUSR1:
-            if (process->is_worker) {
+            if (process->process_type == WORKER) {
+                worker_process = (te_worker_process_t *) handle->loop->data;
+
                 te_log(
                     INFO,
                     "Worker is currently handling (%d) connections",
-                    process->current_connections
+                    worker_process->current_connections
                 );
 
                 te_log(
                     INFO,
                     "Worker has handled (%d) connections",
-                    process->total_connections
+                    worker_process->total_connections
                 );
             } else {
-                te_propagate_signal(process, SIGUSR1);
+                te_propagate_signal((te_controller_process_t *) process, SIGUSR1);
             }
             break;
         default:
@@ -225,13 +228,22 @@ int te_set_process_title(const char *fmt, ...)
     return uv_set_process_title(buffer);
 }
 
-void te_init_process(te_process_t *process, int is_worker)
+void te_init_worker_process(te_process_t *process) {
+    te_worker_process_t *worker_process = (te_worker_process_t *) process;
+
+    worker_process->ppid = uv_os_getppid();
+}
+
+void te_init_process(te_process_t *process, te_process_type_t process_type)
 {
-    memset(process, 0x0, sizeof(te_process_t));
+    memset(
+        process,
+        0x0,
+        process_type == CONTROLLER ? sizeof(te_controller_process_t) : sizeof(te_worker_process_t)
+    );
 
     process->state = PROCESS_RUNNING;
-    process->is_worker = is_worker;
-    process->ppid = uv_os_getppid();
+    process->process_type = process_type;
 }
 
 void te_set_libuv_allocator()

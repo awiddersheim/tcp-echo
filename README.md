@@ -9,12 +9,12 @@ to [libuv][libuv].  Can look through version control history to see
 initial pthread work.
 
 This has sort of evolved to become a nano version of [NGINX's][nginx]
-[architecture][nginx-arch] with a master process controlling multiple
-workers handling incoming connections which are [distributed by the
-kernel][nginx-reuseport] using `SO_REUSEPORT`.
+[architecture][nginx-arch] with a controller process controlling
+multiple workers handling incoming connections which are [distributed by
+the kernel][nginx-reuseport] using `SO_REUSEPORT`.
 
 ```
-                  tcp-echo[mastr]
+                  tcp-echo[ctrlr]
             K| --> \_ tcp-echo[wrk1]
       o/    E| --> \_ tcp-echo[wrk2]
 User /| --> R| --> \_ tcp-echo[wrk3]
@@ -143,7 +143,7 @@ necessary.
 $ docker-compose exec tcp-echo /bin/bash
 $ cmake /tcp-echo
 $ make
-$ ./tcp-echo-master
+$ ./tcp-echo-controller
 ```
 
 The listening port `8090` is exposed locally so can interact with the
@@ -189,7 +189,7 @@ $ valgrind \
     --show-leak-kinds=all \
     --track-origins=yes \
     --trace-children=yes \
-    ./tcp-echo-master
+    ./tcp-echo-controller
 ```
 
 ### Performance

@@ -37,7 +37,7 @@ docker run \
     --name tcp-echo-test \
     --rm \
     tcp-echo-test \
-    /bin/bash -c "${COMMAND} ./tcp-echo-master" &
+    /bin/bash -c "${COMMAND} ./tcp-echo-controller" &
 
 for i in {1..30}; do
     RETURNED_DATA=$(docker exec tcp-echo-test /bin/bash -c "echo ${DATA}| nc -w 1 localhost 8090" 2> /dev/null)

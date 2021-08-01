@@ -97,22 +97,22 @@ void te_on_server_close(uv_handle_t *handle)
 void te_on_connection_close(uv_handle_t *handle)
 {
     te_conn_t *conn = (te_conn_t *) handle;
-    te_process_t *process = (te_process_t *) handle->loop->data;
+    te_worker_process_t *worker_process = (te_worker_process_t *) handle->loop->data;
 
-    process->current_connections--;
+    worker_process->current_connections--;
 
     #if defined(WORKER_MAX_CONNECTIONS) && WORKER_MAX_CONNECTIONS > 0
-    if (process->total_connections >= WORKER_MAX_CONNECTIONS)
+    if (worker_process->total_connections >= WORKER_MAX_CONNECTIONS)
         te_stop_process(handle->loop);
     #endif
 
     #if defined(WORKER_CONNECTIONS) && WORKER_CONNECTIONS > 0
-    if (process->current_connections < WORKER_CONNECTIONS && process->state == PROCESS_PAUSED) {
+    if (worker_process->current_connections < WORKER_CONNECTIONS && worker_process->state == PROCESS_PAUSED) {
         te_log(INFO, "Worker resuming connection handling");
 
         te_init_server(handle->loop);
 
-        process->state = PROCESS_RUNNING;
+        worker_process->state = PROCESS_RUNNING;
     }
     #endif
 
@@ -276,15 +276,15 @@ void te_on_parent_timer(uv_timer_t *timer)
 {
     uv_pid_t ppid;
 
-    te_process_t *process = (te_process_t *) timer->loop->data;
+    te_worker_process_t *worker_process = (te_worker_process_t *) timer->loop->data;
 
     ppid = uv_os_getppid();
 
-    if (ppid != process->ppid) {
+    if (ppid != worker_process->ppid) {
         te_log(
             ERROR,
             "Detected parent change from (%d) to (%d)",
-            process->ppid,
+            worker_process->ppid,
             ppid
         );
 
@@ -299,7 +299,7 @@ void te_on_connection(uv_stream_t *server, int status)
     int fd;
     int result;
     te_conn_t *conn;
-    te_process_t *process = (te_process_t *) server->loop->data;
+    te_worker_process_t *worker_process = (te_worker_process_t *) server->loop->data;
 
     if (status < 0) {
         te_log_uv(ERROR, status, "Could not handle new connection");
@@ -317,15 +317,15 @@ void te_on_connection(uv_stream_t *server, int status)
         te_sock_set_linger(fd, 1, LINGER_TIMEOUT);
         te_sock_set_tcp_linger(fd, LINGER_TIMEOUT);
 
-        process->current_connections++;
-        process->total_connections++;
+        worker_process->current_connections++;
+        worker_process->total_connections++;
 
         #if defined(WORKER_MAX_CONNECTIONS) && WORKER_MAX_CONNECTIONS > 0
-        if (process->total_connections >= WORKER_MAX_CONNECTIONS) {
+        if (worker_process->total_connections >= WORKER_MAX_CONNECTIONS) {
             te_log(
                 INFO,
                 "Worker has handled max total connections (%d)",
-                process->total_connections
+                worker_process->total_connections
             );
 
             uv_close((uv_handle_t *) server, te_on_server_close);
@@ -333,14 +333,14 @@ void te_on_connection(uv_stream_t *server, int status)
         #endif
 
         #if defined(WORKER_CONNECTIONS) && WORKER_CONNECTIONS > 0
-        if (process->current_connections >= WORKER_CONNECTIONS && !uv_is_closing((uv_handle_t *) server)) {
+        if (worker_process->current_connections >= WORKER_CONNECTIONS && !uv_is_closing((uv_handle_t *) server)) {
             te_log(
                 WARN,
                 "Worker pausing while handling max simultaneous connections (%d)",
-                process->current_connections
+                worker_process->current_connections
             );
 
-            process->state = PROCESS_PAUSED;
+            worker_process->state = PROCESS_PAUSED;
 
             uv_close((uv_handle_t *) server, te_on_server_close);
         }
@@ -380,16 +380,16 @@ char *te_set_worker_title(char *worker_id)
     return title;
 }
 
-void te_update_parent_pid(te_process_t *process)
+void te_update_parent_pid(te_worker_process_t *worker_process)
 {
     sds ppid;
 
-    ppid = te_os_getenv("TE_MASTER_PID");
+    ppid = te_os_getenv("TE_CONTROLLER_PID");
 
     if (sdslen(ppid)) {
-        process->ppid = strtol(ppid, NULL, 10);
+        worker_process->ppid = strtol(ppid, NULL, 10);
 
-        te_log(DEBUG, "Found passed master pid (%d)", process->ppid);
+        te_log(DEBUG, "Found passed controller pid (%d)", worker_process->ppid);
     }
 
     sdsfree(ppid);
@@ -399,7 +399,7 @@ int main(int argc, char *argv[])
 {
     int result;
     sds worker_id;
-    te_process_t process;
+    te_worker_process_t worker_process;
     uv_loop_t loop;
     uv_signal_t sigquit;
     uv_signal_t sigterm;
@@ -410,21 +410,21 @@ int main(int argc, char *argv[])
 
     te_set_libuv_allocator();
 
-    worker_id = te_os_getenv("TE_WORKER_ID");
+    worker_id = te_os_getenv("TE_CONTROLLER_ID");
 
     te_set_worker_title(worker_id);
     uv_setup_args(argc, argv);
     te_set_worker_process_title(worker_id);
 
-    te_init_process(&process, 1);
-    te_update_parent_pid(&process);
+    te_init_process((te_process_t *) &worker_process, WORKER);
+    te_update_parent_pid(&worker_process);
 
     te_log(INFO, "Worker created");
 
     if ((result = uv_loop_init(&loop)) < 0)
         te_log_uv(FATAL, result, "Could not create worker loop");
 
-    loop.data = &process;
+    loop.data = &worker_process;
 
     te_init_signal(&loop, &sigquit, te_signal_recv, SIGQUIT);
     te_init_signal(&loop, &sigterm, te_signal_recv, SIGTERM);
