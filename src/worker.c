@@ -410,7 +410,7 @@ int main(int argc, char *argv[])
 
     te_set_libuv_allocator();
 
-    worker_id = te_os_getenv("TE_CONTROLLER_ID");
+    worker_id = te_os_getenv("TE_WORKER_ID");
 
     te_set_worker_title(worker_id);
     uv_setup_args(argc, argv);
