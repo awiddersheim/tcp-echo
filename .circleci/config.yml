@@ -143,6 +143,6 @@ workflows:
             - test_ubuntu_gcc
           filters:
             branches:
-              only: master
+              only: main
             tags:
               only: /^v.*/

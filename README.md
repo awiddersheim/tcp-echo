@@ -173,7 +173,7 @@ Alpine base image. Some issues mainly with [musl libc][musl-libc].
 $ ./test.sh
 ```
 
-All of the tests are performed each commit to `master` by
+All of the tests are performed each commit to `main` by
 [CircleCI][circleci]. Once all tests pass in the [pipeline][pipeline], a
 new image is published to [Docker Hub][dockerhub].
 
@@ -237,7 +237,7 @@ run time options through environment variables or a configuration file.
 [nginx]: https://www.nginx.com/
 [nginx-arch]: https://www.nginx.com/blog/inside-nginx-how-we-designed-for-performance-scale/
 [nginx-reuseport]: https://www.nginx.com/blog/socket-sharding-nginx-release-1-9-1/
-[pipeline]: https://circleci.com/gh/awiddersheim/workflows/tcp-echo/tree/master
+[pipeline]: https://circleci.com/gh/awiddersheim/workflows/tcp-echo/tree/main
 [pthreads]: https://en.wikipedia.org/wiki/POSIX_Threads
 [reuseport]: https://lwn.net/Articles/542629/
 [tcpkali]: https://github.com/satori-com/tcpkali
