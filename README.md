@@ -135,7 +135,7 @@ $ docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 ```
 
 Once the development container is running the locally cloned code will
-be mounted as a volume to `/tcp-echo` so you can hack using local
+be mounted as a volume to `/tcp-echo` so you can hack on it using local
 editors. From there jump into the development container and build as
 necessary.
 
@@ -146,8 +146,8 @@ $ make
 $ ./tcp-echo-controller
 ```
 
-The listening port `8090` is exposed locally so can interact with the
-server using local tools there as well.
+The listening port `8090` is exposed locally so you can interact with
+the server using local tools.
 
 ## Testing
 
