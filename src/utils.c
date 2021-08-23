@@ -188,10 +188,10 @@ void te_sock_set_tcp_linger(__attribute__((unused)) int sock, __attribute__((unu
 
 sds te_getpeername(uv_tcp_t *handle)
 {
-    struct sockaddr_in addr;
+    struct sockaddr_storage addr;
     int addrlen = sizeof(addr);
     sds peer;
-    char buffer[16];
+    uv_getnameinfo_t req;
     int result;
     int failure = 1;
 
@@ -200,7 +200,7 @@ sds te_getpeername(uv_tcp_t *handle)
         goto cleanup;
     }
 
-    if ((result = uv_inet_ntop(AF_INET, &addr.sin_addr, buffer, sizeof(buffer))) < 0) {
+    if ((result = uv_getnameinfo(handle->loop, &req, NULL, (struct sockaddr*) &addr, NI_NUMERICHOST | NI_NUMERICSERV)) < 0) {
         te_log_uv(ERROR, result, "Could not get text address");
         goto cleanup;
     }
@@ -211,7 +211,7 @@ cleanup:
     if (failure)
         peer = sdsnew("unknown");
     else
-        peer = sdscatprintf(sdsempty(), "%s:%d", buffer, ntohs(addr.sin_port));
+        peer = sdscatprintf(sdsempty(), "%s:%s", req.host, req.service);
 
     return peer;
 }
