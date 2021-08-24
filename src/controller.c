@@ -45,8 +45,6 @@ void te_init_worker(te_worker_t *worker, int id, int cpu)
     int stdio_count = 3;
     int cpumask_size;
 
-    memset(worker, 0x0, sizeof(te_worker_t));
-
     worker->id = id;
 
     worker->title = sdscatprintf(sdsempty(), "worker-%d", id);
@@ -97,7 +95,7 @@ void te_init_workers(te_controller_process_t *controller_process)
     controller_process->worker_count = cpu_count;
     #endif
 
-    controller_process->workers = te_malloc(sizeof(te_worker_t) * controller_process->worker_count);
+    controller_process->workers = te_calloc(controller_process->worker_count, sizeof(te_worker_t));
 
     for (workers = 0, cpu = 0; workers < controller_process->worker_count;) {
         te_init_worker(&controller_process->workers[workers], workers + 1, cpu);
@@ -262,7 +260,7 @@ void te_on_worker_timer(uv_timer_t *timer)
 int main(int argc, char *argv[])
 {
     int result;
-    te_controller_process_t controller_process;
+    te_controller_process_t controller_process = { 0 };
     uv_loop_t loop;
     uv_signal_t sigquit;
     uv_signal_t sigterm;

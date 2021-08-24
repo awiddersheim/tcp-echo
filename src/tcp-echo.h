@@ -67,7 +67,7 @@ typedef struct {
     TE_PROCESS_FIELDS
     unsigned int current_connections;
     unsigned int total_connections;
-    uv_pid_t ppid;
+    uv_pid_t controller_pid;
 } te_worker_process_t;
 
 typedef struct {

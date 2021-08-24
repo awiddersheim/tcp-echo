@@ -26,8 +26,7 @@ te_conn_t *te_init_connection(uv_loop_t *loop)
 {
     te_conn_t *conn;
 
-    conn = te_malloc(sizeof(te_conn_t));
-    memset(conn, 0x0, sizeof(te_conn_t));
+    conn = te_calloc(1, sizeof(te_conn_t));
 
     uv_tcp_init(loop, &conn->client);
 
@@ -78,8 +77,7 @@ te_write_req_t *te_init_write_request(te_conn_t *conn, sds buffer)
 {
     te_write_req_t *write_request;
 
-    write_request = te_malloc(sizeof(te_write_req_t));
-    memset(write_request, 0x0, sizeof(te_write_req_t));
+    write_request = te_calloc(1, sizeof(te_write_req_t));
 
     write_request->buffer = uv_buf_init(buffer, sdslen(buffer));
     write_request->conn = conn;
@@ -275,16 +273,15 @@ void te_on_stale_timer(uv_timer_t *timer)
 void te_on_parent_timer(uv_timer_t *timer)
 {
     uv_pid_t ppid;
-
     te_worker_process_t *worker_process = (te_worker_process_t *) timer->loop->data;
 
     ppid = uv_os_getppid();
 
-    if (ppid != worker_process->ppid) {
+    if (ppid != worker_process->controller_pid) {
         te_log(
             ERROR,
             "Detected parent change from (%d) to (%d)",
-            worker_process->ppid,
+            worker_process->controller_pid,
             ppid
         );
 
@@ -380,26 +377,40 @@ char *te_set_worker_title(char *worker_id)
     return title;
 }
 
-void te_update_parent_pid(te_worker_process_t *worker_process)
+uv_pid_t te_get_controller_pid()
 {
-    sds ppid;
+    sds cpid;
+    uv_pid_t controller_pid;
 
-    ppid = te_os_getenv("TE_CONTROLLER_PID");
+    cpid = te_os_getenv("TE_CONTROLLER_PID");
 
-    if (sdslen(ppid)) {
-        worker_process->ppid = strtol(ppid, NULL, 10);
+    if (sdslen(cpid)) {
+        controller_pid = strtol(cpid, NULL, 10);
 
-        te_log(DEBUG, "Found passed controller pid (%d)", worker_process->ppid);
+        te_log(DEBUG, "Found passed controller PID (%d)", controller_pid);
+    } else {
+        controller_pid = uv_os_getppid();
+
+        te_log(DEBUG, "No controller PID was passed, using (%d)", controller_pid);
     }
 
-    sdsfree(ppid);
+    sdsfree(cpid);
+
+    return controller_pid;
+}
+
+void te_init_worker_process(te_worker_process_t *worker_process)
+{
+    te_init_process((te_process_t *) worker_process, WORKER);
+
+    worker_process->controller_pid = te_get_controller_pid();
 }
 
 int main(int argc, char *argv[])
 {
     int result;
     sds worker_id;
-    te_worker_process_t worker_process;
+    te_worker_process_t worker_process = { 0 };
     uv_loop_t loop;
     uv_signal_t sigquit;
     uv_signal_t sigterm;
@@ -416,8 +427,7 @@ int main(int argc, char *argv[])
     uv_setup_args(argc, argv);
     te_set_worker_process_title(worker_id);
 
-    te_init_process((te_process_t *) &worker_process, WORKER);
-    te_update_parent_pid(&worker_process);
+    te_init_worker_process(&worker_process);
 
     te_log(INFO, "Worker created");
 

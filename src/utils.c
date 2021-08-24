@@ -88,9 +88,13 @@ sds te_os_getenv(const char *name)
     }
 
     if (result < 0) {
-        ptr[0] = '\0';
+        if (result != UV_ENOENT) {
+            te_log_uv(WARN, result, "Could not get environment variable (%s)", name);
+        }
 
-        sdsupdatelen(ptr);
+        sdsfree(ptr);
+
+        ptr = sdsempty();
     }
 
     return ptr;
@@ -195,12 +199,12 @@ sds te_getpeername(uv_tcp_t *handle)
     int result;
     int failure = 1;
 
-    if ((result = uv_tcp_getpeername(handle, (struct sockaddr*) &addr, &addrlen)) < 0) {
+    if ((result = uv_tcp_getpeername(handle, (struct sockaddr *) &addr, &addrlen)) < 0) {
         te_log_uv(ERROR, result, "Could not get peer name");
         goto cleanup;
     }
 
-    if ((result = uv_getnameinfo(handle->loop, &req, NULL, (struct sockaddr*) &addr, NI_NUMERICHOST | NI_NUMERICSERV)) < 0) {
+    if ((result = uv_getnameinfo(handle->loop, &req, NULL, (struct sockaddr *) &addr, NI_NUMERICHOST | NI_NUMERICSERV)) < 0) {
         te_log_uv(ERROR, result, "Could not get text address");
         goto cleanup;
     }
@@ -228,20 +232,8 @@ int te_set_process_title(const char *fmt, ...)
     return uv_set_process_title(buffer);
 }
 
-void te_init_worker_process(te_process_t *process) {
-    te_worker_process_t *worker_process = (te_worker_process_t *) process;
-
-    worker_process->ppid = uv_os_getppid();
-}
-
 void te_init_process(te_process_t *process, te_process_type_t process_type)
 {
-    memset(
-        process,
-        0x0,
-        process_type == CONTROLLER ? sizeof(te_controller_process_t) : sizeof(te_worker_process_t)
-    );
-
     process->state = PROCESS_RUNNING;
     process->process_type = process_type;
 }
