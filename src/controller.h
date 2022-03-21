@@ -1,6 +1,8 @@
 #ifndef __CONTROLLER_H_
 #define __CONTROLLER_H_
 
+int te_controller_main(int argc, char *argv[]);
+
 void te_free_worker(te_worker_t *worker);
 
 char **te_init_worker_env();

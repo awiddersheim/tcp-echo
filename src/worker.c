@@ -406,7 +406,7 @@ void te_init_worker_process(te_worker_process_t *worker_process)
     worker_process->controller_pid = te_get_controller_pid();
 }
 
-int main(int argc, char *argv[])
+int te_worker_main(int argc, char *argv[])
 {
     int result;
     sds worker_id;
@@ -418,8 +418,6 @@ int main(int argc, char *argv[])
     uv_signal_t sigusr1;
     uv_timer_t stale_timer;
     uv_timer_t parent_timer;
-
-    te_set_libuv_allocator();
 
     worker_id = te_os_getenv("TE_WORKER_ID");
 

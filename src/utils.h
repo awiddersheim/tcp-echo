@@ -9,6 +9,7 @@ void te_sock_set_tcp_linger(int sock, int timeout);
 sds te_getpeername(uv_tcp_t *handle);
 int te_gettimestamp(char *buffer, size_t size);
 sds te_os_getenv(const char *name);
+int te_os_checkenv(const char *name);
 void te_signal_recv(uv_signal_t *handle, int signal);
 int te_set_process_title(const char *fmt, ...);
 void te_stop_process(uv_loop_t *loop);

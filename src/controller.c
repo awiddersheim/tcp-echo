@@ -50,10 +50,10 @@ void te_init_worker(te_worker_t *worker, int id, int cpu)
     worker->title = sdscatprintf(sdsempty(), "worker-%d", id);
 
     worker->options.exit_cb = te_on_worker_exit;
-    worker->options.file = "tcp-echo-worker";
+    worker->options.file = "tcp-echo";
 
     worker->options.args = te_malloc(sizeof(char *) * 2);
-    worker->options.args[0] = "tcp-echo-worker";
+    worker->options.args[0] = "tcp-echo";
     worker->options.args[1] = NULL;
 
     worker->options.env = te_init_worker_env();
@@ -257,7 +257,7 @@ void te_on_worker_timer(uv_timer_t *timer)
         uv_timer_stop(timer);
 }
 
-int main(int argc, char *argv[])
+int te_controller_main(int argc, char *argv[])
 {
     int result;
     te_controller_process_t controller_process = { 0 };
@@ -267,8 +267,6 @@ int main(int argc, char *argv[])
     uv_signal_t sigint;
     uv_signal_t sigusr1;
     uv_timer_t worker_timer;
-
-    te_set_libuv_allocator();
 
     te_set_title("controller");
     uv_setup_args(argc, argv);

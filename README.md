@@ -143,7 +143,7 @@ necessary.
 $ docker-compose exec tcp-echo /bin/bash
 $ cmake /tcp-echo
 $ make
-$ ./tcp-echo-controller
+$ ./tcp-echo
 ```
 
 The listening port `8090` is exposed locally so you can interact with
@@ -189,7 +189,7 @@ $ valgrind \
     --show-leak-kinds=all \
     --track-origins=yes \
     --trace-children=yes \
-    ./tcp-echo-controller
+    ./tcp-echo
 ```
 
 ### Performance

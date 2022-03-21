@@ -100,6 +100,23 @@ sds te_os_getenv(const char *name)
     return ptr;
 }
 
+int te_os_checkenv(const char *name)
+{
+    int length;
+    sds env;
+
+    env = te_os_getenv(name);
+    length = sdslen(env);
+
+    sdsfree(env);
+
+    if (length) {
+        return 1;
+    }
+
+    return 0;
+}
+
 void te_signal_recv(uv_signal_t *handle, int signal)
 {
     te_process_t *process = (te_process_t *) handle->loop->data;

@@ -7,6 +7,8 @@ typedef struct {
     te_conn_t *conn;
 } te_write_req_t;
 
+int te_worker_main(int argc, char *argv[]);
+
 void te_alloc_buffer(__attribute__((unused)) uv_handle_t *handle, size_t size, uv_buf_t *buffer);
 void free_write_request(te_write_req_t *write_request);
 
