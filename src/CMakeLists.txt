@@ -1,8 +1,8 @@
 file(GLOB_RECURSE SOURCES "*.c")
 
 configure_file(
-  config.h.cmake
-  ${CMAKE_SOURCE_DIR}/src/config.h
+  constants.h.cmake
+  ${CMAKE_SOURCE_DIR}/src/constants.h
 )
 
 add_executable(

@@ -12,7 +12,6 @@ void te_free_worker(te_worker_t *worker)
 
     free(worker->options.env);
     free(worker->options.stdio);
-    free(worker->options.args);
     free(worker->options.cpumask);
     sdsfree(worker->title);
 }
@@ -40,7 +39,7 @@ char **te_init_worker_env()
     return envp;
 }
 
-void te_init_worker(te_worker_t *worker, int id, int cpu)
+void te_init_worker(te_worker_t *worker, int id, int cpu, char *argv[])
 {
     int stdio_count = 3;
     int cpumask_size;
@@ -52,9 +51,7 @@ void te_init_worker(te_worker_t *worker, int id, int cpu)
     worker->options.exit_cb = te_on_worker_exit;
     worker->options.file = "tcp-echo";
 
-    worker->options.args = te_malloc(sizeof(char *) * 2);
-    worker->options.args[0] = "tcp-echo";
-    worker->options.args[1] = NULL;
+    worker->options.args = argv;
 
     worker->options.env = te_init_worker_env();
     te_set_worker_env(&worker->options.env, "TE_WORKER_ID", "%d", worker->id);
@@ -74,9 +71,10 @@ void te_init_worker(te_worker_t *worker, int id, int cpu)
         worker->options.cpumask[cpu] = 1;
         worker->options.cpumask_size = cpumask_size;
     }
+
 }
 
-void te_init_workers(te_controller_process_t *controller_process)
+void te_init_workers(te_controller_process_t *controller_process, char *argv[])
 {
     int cpu;
     int cpu_count;
@@ -89,16 +87,16 @@ void te_init_workers(te_controller_process_t *controller_process)
 
     uv_free_cpu_info(cpu_info, cpu_count);
 
-    #if defined(WORKERS) && WORKERS > 0
-    controller_process->worker_count = WORKERS;
-    #else
-    controller_process->worker_count = cpu_count;
-    #endif
+    if (controller_process->config.workers > 0) {
+        controller_process->worker_count = controller_process->config.workers;
+    } else {
+        controller_process->worker_count = cpu_count;
+    }
 
     controller_process->workers = te_calloc(controller_process->worker_count, sizeof(te_worker_t));
 
     for (workers = 0, cpu = 0; workers < controller_process->worker_count;) {
-        te_init_worker(&controller_process->workers[workers], workers + 1, cpu);
+        te_init_worker(&controller_process->workers[workers], workers + 1, cpu, argv);
 
         cpu++;
 
@@ -235,7 +233,7 @@ int te_spawn_workers(uv_loop_t *loop, te_controller_process_t *controller_proces
             if (!controller_process->is_listening) {
                 controller_process->is_listening = 1;
 
-                te_log(INFO, "Listening on 0.0.0.0:%d", PORT_NUMBER);
+                te_log(INFO, "Listening on 0.0.0.0:%d", controller_process->config.port);
             }
 
             workers++;
@@ -268,11 +266,12 @@ int te_controller_main(int argc, char *argv[])
     uv_signal_t sigusr1;
     uv_timer_t worker_timer;
 
-    te_set_title("controller");
-    uv_setup_args(argc, argv);
-    te_set_process_title("tcp-echo[ctrlr]");
-
     te_init_process((te_process_t *) &controller_process, CONTROLLER);
+    te_init_config(argc, argv, &controller_process.config);
+
+    te_set_log_title("controller");
+    argv = uv_setup_args(argc, argv);
+    te_set_process_title("tcp-echo[ctrlr]");
 
     if ((result = uv_loop_init(&loop)) < 0)
         te_log_uv(FATAL, result, "Could not create controller loop");
@@ -286,7 +285,7 @@ int te_controller_main(int argc, char *argv[])
 
     te_update_path();
 
-    te_init_workers(&controller_process);
+    te_init_workers(&controller_process, argv);
 
     uv_timer_init(&loop, &worker_timer);
     uv_timer_start(
@@ -324,7 +323,7 @@ int te_controller_main(int argc, char *argv[])
 
     te_log(INFO, "All done");
 
-    te_free_title();
+    te_free_log_title();
 
     return 0;
 }

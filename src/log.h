@@ -9,22 +9,27 @@ typedef enum {
     WARN  = 3,
     ERROR = 4,
     FATAL = 5
-} log_level_t;
+} te_log_level_t;
 
-static const char *log_levels[] = {
+static const char *te_log_levels[] = {
     "DEBUG",
     "INFO",
     "WARN",
     "ERROR",
-    "FATAL"
+    "FATAL",
+    NULL
 };
 
-sds te_set_title(const char *fmt, ...);
-sds te_get_title();
-void te_free_title();
+sds te_set_log_title(const char *fmt, ...);
+sds te_get_log_title();
+void te_free_log_title();
+void te_set_log_level(te_log_level_t log_level);
+te_log_level_t te_get_log_level();
+void te_enable_log_timestamps();
+int te_log_timestamps_enabled();
 
 #define te__log(lvl, fmt, ...) do {\
-    if (lvl < LOG_LEVEL) \
+    if (lvl < te_get_log_level()) \
         break; \
     fprintf(stdout, fmt, __VA_ARGS__); \
     fflush(stdout); \
@@ -32,19 +37,17 @@ void te_free_title();
         exit(1); \
 } while(0)
 
-#ifdef TIMESTAMPS
 #define te__log_helper2(lvl, fmt, ...) do {\
-    char timestamp[24]; \
-    te_gettimestamp(timestamp, sizeof(timestamp)); \
-    te__log(lvl, "%s - " fmt, timestamp, __VA_ARGS__); \
+    if (te_log_timestamps_enabled()) { \
+        char timestamp[24]; \
+        te_gettimestamp(timestamp, sizeof(timestamp)); \
+        te__log(lvl, "%s - " fmt, timestamp, __VA_ARGS__); \
+    } else { \
+        te__log(lvl, fmt, __VA_ARGS__); \
+    } \
 } while(0)
-#else
-#define te__log_helper2(lvl, fmt, ...) do {\
-    te__log(lvl, fmt, __VA_ARGS__); \
-} while(0)
-#endif
 
-#define te__log_helper(lvl, fmt, ...) te__log_helper2(lvl, "[%s] (%s)(%d): " fmt "%s\n", log_levels[lvl - 1], te_get_title(), uv_os_getpid(), __VA_ARGS__);
+#define te__log_helper(lvl, fmt, ...) te__log_helper2(lvl, "[%s] (%s)(%d): " fmt "%s\n", te_log_levels[lvl - 1], te_get_log_title(), uv_os_getpid(), __VA_ARGS__);
 #define te_log(...) te__log_helper(__VA_ARGS__, "")
 
 #define te__log_errno_helper(lvl, fmt, ...) do {\

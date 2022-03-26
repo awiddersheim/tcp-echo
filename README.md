@@ -210,9 +210,10 @@ $ tcpkali localhost:8090 \
 
 ## Configuring
 
-There are some configuration options available at build time in
-`src/config.h.cmake`. Plans are under way for exposing more of these as
-run time options through environment variables or a configuration file.
+There are command line arguments available to modify the programs
+behavior. See `./tcp-echo --help` for more information. Plans are under
+way for modifying these using environment variables or a configuration
+file.
 
 ## Communication
 

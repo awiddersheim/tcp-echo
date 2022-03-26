@@ -43,6 +43,7 @@ uv_tcp_t *te_init_server(uv_loop_t *loop)
     int result;
     struct sockaddr_in addr;
     uv_tcp_t *server;
+    te_process_t *worker_process = (te_process_t *) loop->data;
 
     server = te_malloc(sizeof(uv_tcp_t));
 
@@ -52,23 +53,19 @@ uv_tcp_t *te_init_server(uv_loop_t *loop)
     uv_fileno((uv_handle_t *) server, &fd);
     te_sock_setreuse_port(fd, 1);
 
-    #ifdef ENABLE_NODELAY
-    if ((result = uv_tcp_nodelay(server, 1)) < 0)
+    if (worker_process->config.enable_nodelay && (result = uv_tcp_nodelay(server, 1)) < 0)
         te_log_uv(FATAL, result, "Could not set nodelay on socket");
-    #endif
 
-    #ifdef ENABLE_KEEPALIVE
-    if ((result = uv_tcp_keepalive(server, 1, KEEPALIVE_INTERVAL)) < 0)
+    if (worker_process->config.keepalive_delay && (result = uv_tcp_keepalive(server, 1, worker_process->config.keepalive_delay)) < 0)
         te_log_uv(FATAL, result, "Could not set keepalive on socket");
-    #endif
 
-    uv_ip4_addr("0.0.0.0", PORT_NUMBER, &addr);
+    uv_ip4_addr("0.0.0.0", worker_process->config.port, &addr);
 
     if ((result = uv_tcp_bind(server, (const struct sockaddr *) &addr, 0)) < 0)
-        te_log_uv(FATAL, result, "Could not bind to port (%d)", PORT_NUMBER);
+        te_log_uv(FATAL, result, "Could not bind to port (%d)", worker_process->config.port);
 
-    if ((result = uv_listen((uv_stream_t *) server, CONNECTION_BACKLOG, te_on_connection)) < 0)
-        te_log_uv(FATAL, result, "Could not listen for connections on (%d)", PORT_NUMBER);
+    if ((result = uv_listen((uv_stream_t *) server, worker_process->config.connection_backlog, te_on_connection)) < 0)
+        te_log_uv(FATAL, result, "Could not listen for connections on (%d)", worker_process->config.port);
 
     return server;
 }
@@ -99,20 +96,20 @@ void te_on_connection_close(uv_handle_t *handle)
 
     worker_process->current_connections--;
 
-    #if defined(WORKER_MAX_CONNECTIONS) && WORKER_MAX_CONNECTIONS > 0
-    if (worker_process->total_connections >= WORKER_MAX_CONNECTIONS)
+    if (worker_process->config.max_connections > 0 && worker_process->total_connections >= worker_process->config.max_connections)
         te_stop_process(handle->loop);
-    #endif
 
-    #if defined(WORKER_CONNECTIONS) && WORKER_CONNECTIONS > 0
-    if (worker_process->current_connections < WORKER_CONNECTIONS && worker_process->state == PROCESS_PAUSED) {
+    if (
+        worker_process->config.max_concurrent_connections > 0
+        && worker_process->current_connections < worker_process->config.max_concurrent_connections
+        && worker_process->state == PROCESS_PAUSED
+    ) {
         te_log(INFO, "Worker resuming connection handling");
 
         te_init_server(handle->loop);
 
         worker_process->state = PROCESS_RUNNING;
     }
-    #endif
 
     free(conn->client.data);
     sdsfree(conn->peer);
@@ -177,14 +174,15 @@ void te_on_connection_timeout(uv_write_t *request, int status)
 {
     int fd;
     te_write_req_t *write_request = (te_write_req_t *) request;
+    te_worker_process_t *worker_process = (te_worker_process_t *) request->handle->loop->data;
 
     if (status)
         te_log_uv(ERROR, status, "Could not write to (%s)", write_request->conn->peer);
 
     uv_fileno((uv_handle_t *) write_request->conn, &fd);
-    #ifdef SEND_RESET
-    te_sock_set_linger(fd, 1, 0);
-    #endif
+
+    if (worker_process->config.enable_send_reset)
+        te_sock_set_linger(fd, 1, 0);
 
     if (!uv_is_closing((uv_handle_t *) write_request->conn)) {
         te_log(INFO, "Closing connection from (%s)", write_request->conn->peer);
@@ -235,6 +233,7 @@ void te_on_stale_walk(uv_handle_t *handle, __attribute__((unused)) void *arg)
     double difference;
     sds buffer;
     te_write_req_t *write_request;
+    te_worker_process_t *worker_process = (te_worker_process_t *) handle->loop->data;
 
     if (uv_is_closing(handle)
         || handle->type != UV_TCP
@@ -246,10 +245,15 @@ void te_on_stale_walk(uv_handle_t *handle, __attribute__((unused)) void *arg)
 
     difference = difftime(time(NULL), conn->timeout);
 
-    te_log(DEBUG, "Connection from (%s) has been idle for (%.0f) seconds", conn->peer, difference);
+    te_log(DEBUG, "Connection from (%s) has been idle for (%.0f) second(s)", conn->peer, difference);
 
-    if (difference > CONNECTION_TIMEOUT) {
-        te_log(INFO, "Connection had timed out from (%s)", conn->peer);
+    if (difference > worker_process->config.idle_timeout) {
+        te_log(
+            INFO,
+            "Connection has timed out from (%s) after (%d) second(s)",
+            conn->peer,
+            worker_process->config.idle_timeout
+        );
 
         buffer = sdsnew("Closing connection due to inactivity\n");
 
@@ -311,14 +315,25 @@ void te_on_connection(uv_stream_t *server, int status)
         te_log(INFO, "Handling connection from (%s)", conn->peer);
 
         uv_fileno((uv_handle_t *) conn, &fd);
-        te_sock_set_linger(fd, 1, LINGER_TIMEOUT);
-        te_sock_set_tcp_linger(fd, LINGER_TIMEOUT);
+
+        te_sock_set_linger(
+            fd,
+            1,
+            worker_process->config.linger_timeout
+        );
+
+        te_sock_set_tcp_linger(
+            fd,
+            worker_process->config.linger_timeout
+        );
 
         worker_process->current_connections++;
         worker_process->total_connections++;
 
-        #if defined(WORKER_MAX_CONNECTIONS) && WORKER_MAX_CONNECTIONS > 0
-        if (worker_process->total_connections >= WORKER_MAX_CONNECTIONS) {
+        if (
+            worker_process->config.max_connections > 0
+            && worker_process->total_connections >= worker_process->config.max_connections
+        ) {
             te_log(
                 INFO,
                 "Worker has handled max total connections (%d)",
@@ -327,10 +342,12 @@ void te_on_connection(uv_stream_t *server, int status)
 
             uv_close((uv_handle_t *) server, te_on_server_close);
         }
-        #endif
 
-        #if defined(WORKER_CONNECTIONS) && WORKER_CONNECTIONS > 0
-        if (worker_process->current_connections >= WORKER_CONNECTIONS && !uv_is_closing((uv_handle_t *) server)) {
+        if (
+            worker_process->config.max_concurrent_connections > 0
+            && worker_process->current_connections >= worker_process->config.max_concurrent_connections
+            && !uv_is_closing((uv_handle_t *) server)
+        ) {
             te_log(
                 WARN,
                 "Worker pausing while handling max simultaneous connections (%d)",
@@ -341,7 +358,6 @@ void te_on_connection(uv_stream_t *server, int status)
 
             uv_close((uv_handle_t *) server, te_on_server_close);
         }
-        #endif
 
         uv_read_start((uv_stream_t *) conn, te_alloc_buffer, te_on_echo_read);
     } else {
@@ -364,14 +380,14 @@ int te_set_worker_process_title(sds worker_id)
     return result;
 }
 
-char *te_set_worker_title(char *worker_id)
+char *te_set_worker_log_title(char *worker_id)
 {
     sds title;
 
     if (!sdslen(worker_id)) {
-        title = te_set_title("worker-%d", uv_os_getpid());
+        title = te_set_log_title("worker-%d", uv_os_getpid());
     } else {
-        title = te_set_title("worker-%s", worker_id);
+        title = te_set_log_title("worker-%s", worker_id);
     }
 
     return title;
@@ -399,13 +415,6 @@ uv_pid_t te_get_controller_pid()
     return controller_pid;
 }
 
-void te_init_worker_process(te_worker_process_t *worker_process)
-{
-    te_init_process((te_process_t *) worker_process, WORKER);
-
-    worker_process->controller_pid = te_get_controller_pid();
-}
-
 int te_worker_main(int argc, char *argv[])
 {
     int result;
@@ -419,13 +428,16 @@ int te_worker_main(int argc, char *argv[])
     uv_timer_t stale_timer;
     uv_timer_t parent_timer;
 
+    te_init_process((te_process_t *) &worker_process, WORKER);
+    te_init_config(argc, argv, &worker_process.config);
+
     worker_id = te_os_getenv("TE_WORKER_ID");
 
-    te_set_worker_title(worker_id);
-    uv_setup_args(argc, argv);
+    te_set_worker_log_title(worker_id);
+    argv = uv_setup_args(argc, argv);
     te_set_worker_process_title(worker_id);
 
-    te_init_worker_process(&worker_process);
+    worker_process.controller_pid = te_get_controller_pid();
 
     te_log(INFO, "Worker created");
 
@@ -443,7 +455,7 @@ int te_worker_main(int argc, char *argv[])
     uv_timer_start(
         &stale_timer,
         te_on_stale_timer,
-        CONNECTION_TIMEOUT * 1000,
+        worker_process.config.idle_timeout * 1000,
         3000
     );
 
@@ -466,7 +478,7 @@ int te_worker_main(int argc, char *argv[])
     te_log(INFO, "All done");
 
     sdsfree(worker_id);
-    te_free_title();
+    te_free_log_title();
 
     return 0;
 }

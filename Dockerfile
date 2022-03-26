@@ -58,4 +58,4 @@ WORKDIR /tcp-echo
 EXPOSE 8090
 
 USER tcp-echo
-CMD ["./tcp-echo"]
+CMD ["./tcp-echo", "--enable-timestamps", "--enable-nodelay"]

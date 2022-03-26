@@ -1,7 +1,7 @@
 #ifndef __MAIN_H_
 #define __MAIN_H_
 
-#include "config.h"
+#include "constants.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -20,8 +20,10 @@
 #include <unistd.h>
 #include <uv.h>
 #include <sds.h>
+#include "config.h"
 #include "error.h"
 #include "log.h"
+#include "version.h"
 
 typedef enum {
     PROCESS_RUNNING,
@@ -30,7 +32,7 @@ typedef enum {
     PROCESS_KILLED
 } te_process_state_t;
 
-typedef struct worker {
+typedef struct {
     uv_process_t child;
     uv_process_options_t options;
     unsigned int id;
@@ -49,6 +51,7 @@ typedef enum {
 #define TE_PROCESS_FIELDS           \
     te_process_state_t state;       \
     te_process_type_t process_type; \
+    te_config_t config; \
 
 typedef struct {
     TE_PROCESS_FIELDS
