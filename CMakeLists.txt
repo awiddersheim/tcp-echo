@@ -44,6 +44,7 @@ list(
   -Wunused
   -Wunreachable-code
   -Wpedantic
+  -Wno-missing-field-initializers
 )
 
 if(DEFINED ENV{CI})
