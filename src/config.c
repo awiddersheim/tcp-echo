@@ -73,24 +73,25 @@ int te__set_log_level(char *log_level)
     return 1;
 }
 
-int te__string_to_int(char **argv, int index) {
-  char *end;
+int te__string_to_int(char **argv, int index)
+{
+    char *end;
 
-  errno = 0;
+    errno = 0;
 
-  const long sl = strtol(argv[index], &end, 10);
+    const long sl = strtol(argv[index], &end, 10);
 
-  if (end == argv[index]) {
-    te_usage(1, "The value (%s) passed to (%s) was not a number", argv[index], argv[index - 1]);
-  } else if ('\0' != *end) {
-    te_usage(1, "The value (%s) passed to (%s) contained extra characters at end of input", argv[index], argv[index - 1]);
-  } else if ((LONG_MIN == sl || LONG_MAX == sl) && ERANGE == errno) {
-    te_usage(1, "The value (%s) passed to (%s) was out of range for type long", argv[index], argv[index - 1]);
-  } else if (sl > INT_MAX) {
-    te_usage(1, "The value (%s) passed to (%s) was greater than INT_MAX (%ld)", argv[index], argv[index - 1], INT_MAX);
-  } else if (sl < INT_MIN) {
-    te_usage(1, "The value (%s) passed to (%s) was less than INT_MIN (%ld)", argv[index], argv[index - 1], INT_MIN);
-  }
+    if (end == argv[index]) {
+        te_usage(1, "The value (%s) passed to (%s) was not a number", argv[index], argv[index - 1]);
+    } else if ('\0' != *end) {
+        te_usage(1, "The value (%s) passed to (%s) contained extra characters at end of input", argv[index], argv[index - 1]);
+    } else if ((LONG_MIN == sl || LONG_MAX == sl) && ERANGE == errno) {
+        te_usage(1, "The value (%s) passed to (%s) was out of range for type long", argv[index], argv[index - 1]);
+    } else if (sl > INT_MAX) {
+        te_usage(1, "The value (%s) passed to (%s) was greater than INT_MAX (%ld)", argv[index], argv[index - 1], INT_MAX);
+    } else if (sl < INT_MIN) {
+        te_usage(1, "The value (%s) passed to (%s) was less than INT_MIN (%ld)", argv[index], argv[index - 1], INT_MIN);
+    }
 
     return (int)sl;
 }
