@@ -1,3 +1,4 @@
+#include <limits.h>
 #include "tcp-echo.h"
 
 void te_usage(int exit_code, const char *fmt, ...)
@@ -72,6 +73,28 @@ int te__set_log_level(char *log_level)
     return 1;
 }
 
+int te__string_to_int(char **argv, int index) {
+  char *end;
+
+  errno = 0;
+
+  const long sl = strtol(argv[index], &end, 10);
+
+  if (end == argv[index]) {
+    te_usage(1, "The value (%s) passed to (%s) was not a number", argv[index], argv[index - 1]);
+  } else if ('\0' != *end) {
+    te_usage(1, "The value (%s) passed to (%s) contained extra characters at end of input", argv[index], argv[index - 1]);
+  } else if ((LONG_MIN == sl || LONG_MAX == sl) && ERANGE == errno) {
+    te_usage(1, "The value (%s) passed to (%s) was out of range for type long", argv[index], argv[index - 1]);
+  } else if (sl > INT_MAX) {
+    te_usage(1, "The value (%s) passed to (%s) was greater than INT_MAX (%ld)", argv[index], argv[index - 1], INT_MAX);
+  } else if (sl < INT_MIN) {
+    te_usage(1, "The value (%s) passed to (%s) was less than INT_MIN (%ld)", argv[index], argv[index - 1], INT_MIN);
+  }
+
+    return (int)sl;
+}
+
 void te_init_config(int argc, char **argv, te_config_t *config)
 {
     int i;
@@ -84,21 +107,21 @@ void te_init_config(int argc, char **argv, te_config_t *config)
         if (!strcmp(argv[i], "--help")) {
             te_usage(0, NULL);
         } else if (!strcmp(argv[i], "--workers") && !lastarg) {
-            config->workers = atoi(argv[++i]);
+            config->workers = te__string_to_int(argv, ++i);
         } else if (!strcmp(argv[i], "--port") && !lastarg) {
-            config->port = atoi(argv[++i]);
+            config->port = te__string_to_int(argv, ++i);
         } else if (!strcmp(argv[i], "--connection-backlog") && !lastarg) {
-            config->connection_backlog = atoi(argv[++i]);
+            config->connection_backlog = te__string_to_int(argv, ++i);
         } else if (!strcmp(argv[i], "--idle-timeout") && !lastarg) {
-            config->idle_timeout = atoi(argv[++i]);
+            config->idle_timeout = te__string_to_int(argv, ++i);
         } else if (!strcmp(argv[i], "--linger-timeout") && !lastarg) {
-            config->linger_timeout = atoi(argv[++i]);
+            config->linger_timeout = te__string_to_int(argv, ++i);
         } else if (!strcmp(argv[i], "--max-connections") && !lastarg) {
-            config->max_connections = atoi(argv[++i]);
+            config->max_connections = te__string_to_int(argv, ++i);
         } else if (!strcmp(argv[i], "--max-concurrent-connections") && !lastarg) {
-            config->max_concurrent_connections = atoi(argv[++i]);
+            config->max_concurrent_connections = te__string_to_int(argv, ++i);
         } else if (!strcmp(argv[i], "--keepalive-delay") && !lastarg) {
-            config->keepalive_delay = atoi(argv[++i]);
+            config->keepalive_delay = te__string_to_int(argv, ++i);
         } else if (!strcmp(argv[i], "--log-level") && !lastarg) {
             if (te__set_log_level(argv[++i]) > 0) {
                 te_usage(1, "Unknown log level provided");
